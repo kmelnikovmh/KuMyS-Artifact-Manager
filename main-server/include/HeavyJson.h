@@ -17,7 +17,6 @@ namespace main_server{
         std::string check_sum;
 
         std::size_t file_size;
-        std::vector<std::string> package_dependencies;
         std::string content; //TODO NORMAL TYPE
         std::string created_at;
     };

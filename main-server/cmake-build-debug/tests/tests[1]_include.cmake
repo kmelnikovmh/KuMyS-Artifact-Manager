@@ -1,0 +1,5 @@
+if(EXISTS "/Users/admin/Library/Mobile Documents/com~apple~CloudDocs/HSE_AMI/course_1/semester_2/ project/KuMyS-Artifact-Manager/main-server/cmake-build-debug/tests/tests[1]_tests.cmake")
+  include("/Users/admin/Library/Mobile Documents/com~apple~CloudDocs/HSE_AMI/course_1/semester_2/ project/KuMyS-Artifact-Manager/main-server/cmake-build-debug/tests/tests[1]_tests.cmake")
+else()
+  add_test(tests_NOT_BUILT tests_NOT_BUILT)
+endif()
