@@ -27,7 +27,7 @@ find_package(cpprestsdk REQUIRED)
 find_package(folly REQUIRED)
 
 
-add_executable(kumys_server
+add_library(kumys_lib STATIC
         src/main.cpp
         src/HttpServer.cpp
         src/RequestHandler.cpp
@@ -40,11 +40,19 @@ add_executable(kumys_server
         include/PackageDownloader.h
 )
 
+
 #Include libs
-target_link_libraries(kumys_server
+target_link_libraries(kumys_lib
         PRIVATE
         cpprestsdk::cpprest
         mongocxx
         bsoncxx
         Folly::folly
 )
+
+add_executable(kumys_server src/main.cpp)
+target_link_libraries(kumys_server PRIVATE kumys_lib)
+
+#Include tests
+enable_testing()
+add_subdirectory(tests)
