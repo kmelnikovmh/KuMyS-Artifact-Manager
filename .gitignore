@@ -1,0 +1,41 @@
+#Output-dir ignore
+**/build/
+**/out/
+**/bin/
+
+
+#Cmake-build-artifacts-igonore
+**/CMakeCache.txt
+**/CMakeFiles/
+**/CMakeScripts/
+**/Makefile
+**/cmake-build-debug/
+**/cmake_install.cmake
+**/install_manifest.txt
+**/compile_commands.json
+**/CTestTestfile.cmake
+
+
+#bin-file igonore
+**/*.o
+**/*.a
+**/*.so
+**/*.exe
+**/*.out
+**/*.bin
+
+
+#IDE-files ignore
+**/.idea/
+**/.vscode/
+
+
+#Logs/cache ignore
+**/*.log
+**/*.cache
+
+
+#my mac local file mongocxx
+main-server/mongo-cxx-driver/
+
+

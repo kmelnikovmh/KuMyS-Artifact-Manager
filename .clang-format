@@ -1,0 +1,38 @@
+---
+BasedOnStyle: LLVM  # Базовый стиль форматирования (LLVM, Google, Mozilla и др.)
+IndentWidth: 4       # Количество пробелов для отступов
+TabWidth: 4          # Ширина табуляции в пробелах
+UseTab: Never        # Не использовать табуляцию (всегда пробелы)
+BreakBeforeBraces: Attach  # Фигурные скобки { остаются на той же строке
+AllowShortIfStatementsOnASingleLine: false  # Запретить однострочные if
+IndentCaseLabels: true  # Отступ для меток case в switch
+ColumnLimit: 120      # Максимальная длина строки (после чего перенос)
+AccessModifierOffset: -4  # Отступ для модификаторов доступа (public, private)
+NamespaceIndentation: All  # Отступ для содержимого namespace
+FixNamespaceComments: true  # Автоматически исправлять комментарии после namespace
+AlignAfterOpenBracket: Align  # Выравнивание после открывающей скобки
+AlignConsecutiveMacros: true  # Выравнивание последовательных макросов
+AlignConsecutiveAssignments: true  # Выравнивание последовательных присваиваний
+AlignConsecutiveDeclarations: true  # Выравнивание последовательных объявлений
+AlignTrailingComments: true  # Выравнивание комментариев в конце строк
+AllowAllParametersOfDeclarationOnNextLine: false  # Запретить перенос всех параметров на новую строку
+AllowShortBlocksOnASingleLine: false  # Запретить однострочные блоки
+AllowShortFunctionsOnASingleLine: None  # Запретить однострочные функции
+AllowShortLoopsOnASingleLine: false  # Запретить однострочные циклы
+AlwaysBreakTemplateDeclarations: Yes  # Всегда переносить объявления шаблонов
+BinPackArguments: false  # Не группировать аргументы функции в одну строку
+BinPackParameters: false  # Не группировать параметры функции в одну строку
+BreakConstructorInitializers: BeforeComma  # Перенос списка инициализации перед запятой
+BreakInheritanceList: BeforeComma  # Перенос списка наследования перед запятой
+BreakStringLiterals: true  # Переносить длинные строковые литералы
+DerivePointerAlignment: false  # Не выводить выравнивание указателей автоматически
+PointerAlignment: Left  # Выравнивание указателей влево (int* ptr)
+SpaceBeforeParens: ControlStatements  # Пробел перед скобками в управляющих конструкциях (if, for)
+SpaceInEmptyParentheses: false  # Не добавлять пробелы в пустых скобках ()
+SpacesInAngles: false  # Не добавлять пробелы в угловых скобках <T>
+SpacesInContainerLiterals: false  # Не добавлять пробелы в литералах контейнеров [1, 2, 3]
+SpacesInCStyleCastParentheses: false  # Не добавлять пробелы в C-стиле приведения (int)x
+SpacesInParentheses: false  # Не добавлять пробелы в круглых скобках (a + b)
+SpacesInSquareBrackets: false  # Не добавлять пробелы в квадратных скобках array[0]
+Standard: c++20 # Использовать стандарт C++20 для форматирования
+InsertNewlineAtEOF: true  # Добавлять пустую строку в конце файла
