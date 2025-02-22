@@ -16,4 +16,4 @@ fi
 echo "Запустили форматирование ... "
 find "./src" "./include" -name "*.cpp" -o -name "*.hpp" | xargs "$CLANG_FORMAT" -i -style=file
 
-ehco "Форматирование окончено!"
+echo "Форматирование окончено!"
