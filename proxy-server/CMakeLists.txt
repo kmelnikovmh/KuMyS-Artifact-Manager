@@ -7,4 +7,3 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 include_directories(include)
 
 add_executable(main src/main.cpp)
-target_link_libraries(tic-tac-toe ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
