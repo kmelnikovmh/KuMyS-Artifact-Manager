@@ -17,7 +17,6 @@ public:
             folly::MPMCQueue<HeavyJSON>& output_queue
     );
 
-    static folly::Future<LightJSON> validate_package(const std::string& package_id);
     static folly::Future<LightJSON> process_single_package(const std::string& package_id);
 
     void start();
