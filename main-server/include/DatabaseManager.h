@@ -4,26 +4,26 @@
 
 #ifndef KUMYS_ARTIFACT_MANAGER_DATABESMANGER_H
 #define KUMYS_ARTIFACT_MANAGER_DATABESMANGER_H
-#include <string>
-#include <mongocxx/pool.hpp>
-#include <folly/futures/Future.h>
 #include "HeavyJson.h"
+#include <folly/futures/Future.h>
+#include <mongocxx/pool.hpp>
+#include <string>
+#include <folly/experimental/coro/Task.h>
 
-namespace main_server{
+namespace main_server {
 
-class DatabaseManger {
+class DatabaseManager {
 public:
-    static void init(const std::string& connection_uri);
+  static void init(const std::string &connection_uri);
 
+  static folly::coro::Task<bool> check_package(std::string &package_id);
 
-    static folly::Future<bool> check_package_exists(const std::string& package_id);
-    static folly::Future<HeavyJSON> fetch_package(const std::string& package_id);
-    static folly::Future<void> store_package(const HeavyJSON& package);
+  static folly::coro::Task<HeavyJSON> fetch_package(std::string &package_id);
+  static folly::coro::Task<void>  store_package(const HeavyJSON &package);
+
 private:
-    static inline std::unique_ptr<mongocxx::pool> connection_pool;
-
-
+  static inline std::unique_ptr<mongocxx::pool> connection_pool;
 };
-}// namespace main_server
+} // namespace main_server
 
-#endif //KUMYS_ARTIFACT_MANAGER_DATABESMANGER_H
+#endif // KUMYS_ARTIFACT_MANAGER_DATABESMANGER_H
