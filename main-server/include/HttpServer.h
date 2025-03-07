@@ -13,7 +13,7 @@
 namespace main_server{
 class HttpServer{
 public:
-    explicit HttpServer(std::string url,folly::MPMCQueue<LightJSON>& input_queue, folly::MPMCQueue<HeavyJSON>& output_queue );
+    explicit HttpServer(const std::string& url,folly::MPMCQueue<LightJSON>& input_queue, folly::MPMCQueue<HeavyJSON>& output_queue );
     ~HttpServer() = default;
 
     void start();
@@ -24,8 +24,8 @@ public:
     HttpServer(HttpServer&&) = delete;
     HttpServer& operator=(HttpServer&&) = delete;
 private:
-    void handle_get_request(web::http::http_request request); // check exist packages
-    void handle_post_request(web::http::http_request request); // install packages(apt-install)
+    void handle_get_request(const web::http::http_request& request); // check exist packages
+    void handle_post_request(const web::http::http_request& request); // install packages(apt-install)
     bool validate_light_json(const LightJSON& json);
 
     web::http::experimental::listener::http_listener listener;

@@ -12,7 +12,7 @@ using namespace web;
 using namespace http;
 using namespace utility;
 
-main_server::HttpServer::HttpServer(std::string url, folly::MPMCQueue<LightJSON> &input_queue,
+main_server::HttpServer::HttpServer(const std::string& url, folly::MPMCQueue<LightJSON> &input_queue,
                                     folly::MPMCQueue<HeavyJSON> &output_queue) : listener(url),
                                                                                  input_queue_(input_queue),
                                                                                  output_queue_(output_queue) {
@@ -38,11 +38,11 @@ void main_server::HttpServer::stop() {
 }
 
 //TODO
-void main_server::HttpServer::handle_post_request(web::http::http_request request) {
+void main_server::HttpServer::handle_post_request(const web::http::http_request& request) {
 }
 
-void main_server::HttpServer::handle_get_request(web::http::http_request request) {
-    request.extract_json().then([this, request](pplx::task<json::value> task){
+void main_server::HttpServer::handle_get_request(const web::http::http_request& request) {
+    request.extract_json().then([this, request](const pplx::task<json::value>& task){
         try{
             auto json_body = task.get();
             LightJSON lightJson_request {
