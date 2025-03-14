@@ -4,6 +4,6 @@ project(KuMyS-Artifact-Manager)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-include_directories(include)
+include_directories(../common-include)
 
 add_executable(main src/main.cpp)

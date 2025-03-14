@@ -7,8 +7,8 @@
 #include <string>
 #include <vector>
 
-namespace main_server{
-    struct HeavyJSON{
+namespace main_server {
+    struct HeavyJSON {
         std::string id;
         std::string request_type;
         std::string name;
@@ -17,10 +17,10 @@ namespace main_server{
         std::string check_sum;
 
         std::size_t file_size;
-        std::string content; //TODO NORMAL TYPE
+        std::string content; // TODO NORMAL TYPE
         std::string created_at;
     };
 
-}// namespace main_server
+} // namespace main_server
 
-#endif //KUMYS_ARTIFACT_MANAGER_HEAVYJSON_H
+#endif // KUMYS_ARTIFACT_MANAGER_HEAVYJSON_H
