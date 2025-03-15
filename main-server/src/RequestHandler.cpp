@@ -32,17 +32,19 @@ void main_server::RequestHandler::start() {
 
 void main_server::RequestHandler::stop() {
     stopped_.store(true);
+    executor_->join();
     if (worker_.joinable()) worker_.join();
 }
 
 void main_server::RequestHandler::processLoop() {
     while (!stopped_.load()) {
-        if (!input_queue_.isEmpty()) {
-            LightJSON package;
-            input_queue_.blockingRead(package);
-            folly::coro::blockingWait(processPackage(std::move(package)));
+        LightJSON package;
+        if (input_queue_.readIfNotEmpty(package)) {
+            folly::coro::co_invoke([this, pkg = std::move(package)] {
+                return processPackage(std::move(pkg));
+            }).scheduleOn(executor_.get()).start();
         } else {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            std::this_thread::yield();
         }
 
     }

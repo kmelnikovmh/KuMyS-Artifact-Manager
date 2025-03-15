@@ -9,6 +9,7 @@
 #include <folly/MPMCQueue.h>
 #include <folly/experimental/coro/Task.h>
 #include <folly/futures/Future.h>
+#include <folly/executors/CPUThreadPoolExecutor.h>
 
 namespace main_server {
 
@@ -30,9 +31,10 @@ namespace main_server {
         folly::MPMCQueue<LightJSON> &download_queue_;
         folly::MPMCQueue<HeavyJSON> &output_queue_;
         std::thread worker_;
+        std::shared_ptr<folly::CPUThreadPoolExecutor> executor_;
+
 
         std::atomic<bool> stopped_{false};
-        std::vector<folly::coro::Task<void>> tasks_;
     };
 
 } // namespace main_server
