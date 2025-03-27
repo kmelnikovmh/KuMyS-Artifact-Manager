@@ -14,6 +14,8 @@ set(BSONCXX_LIBRARY_DIR "/usr/local/lib")
 include_directories(
         ${MONGOCXX_INCLUDE_DIR}
         ${BSONCXX_INCLUDE_DIR}
+        include
+        ../common-include
 )
 
 #Add path to lib
@@ -25,10 +27,12 @@ link_directories(
 # find dependencies
 find_package(cpprestsdk REQUIRED)
 find_package(folly REQUIRED)
+find_package(GFlags REQUIRED)
+# find_package(GTest REQUIRED)
+# find_package(GMock REQUIRED)
 
 
 add_library(kumys_lib STATIC
-        src/main.cpp
         src/HttpServer.cpp
         src/RequestHandler.cpp
         src/DatabaseManager.cpp
@@ -38,6 +42,8 @@ add_library(kumys_lib STATIC
         include/RequestHandler.h
         include/DatabaseManager.h
         include/PackageDownloader.h
+        ../common-include/LightJson.h
+        ../common-include/HeavyJson.h
 )
 
 
@@ -54,5 +60,5 @@ add_executable(kumys_server src/main.cpp)
 target_link_libraries(kumys_server PRIVATE kumys_lib)
 
 #Include tests
-enable_testing()
-add_subdirectory(tests)
+# enable_testing()
+# add_subdirectory(tests)

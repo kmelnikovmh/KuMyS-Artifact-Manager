@@ -4,17 +4,34 @@
 
 #ifndef KUMYS_ARTIFACT_MANAGER_PACKAGEDOWNLOADER_H
 #define KUMYS_ARTIFACT_MANAGER_PACKAGEDOWNLOADER_H
-#include <string>
-#include <folly/futures/Future.h>
+#include "HeavyJson.h"
 #include "LightJson.h"
+#include <folly/MPMCQueue.h>
+#include <folly/experimental/coro/Task.h>
+#include <folly/futures/Future.h>
+#include <folly/executors/CPUThreadPoolExecutor.h>
+#include <string>
+#include <thread>
 
 namespace main_server{
 
 class PackageDownloader {
 public:
-    static folly::Future<LightJSON> download_single_package(const std::string& package_id);
+    PackageDownloader(folly::MPMCQueue<LightJSON> &download_queue,
+        folly::MPMCQueue<HeavyJSON> &output_queue);
+    void start();
+    void stop();
 
-    //TODO @mixalowstonks
+private:
+    void process_loop();
+    void download_package(const LightJSON& package);
+    static void store_to_database(const HeavyJSON& package);
+    folly::MPMCQueue<LightJSON> &download_queue_;
+    folly::MPMCQueue<HeavyJSON> &output_queue_;
+    std::thread worker_;
+    folly::CPUThreadPoolExecutor executor_;
+
+    std::atomic<bool> is_running_{false};
 };
 }// namespace main_server
 
