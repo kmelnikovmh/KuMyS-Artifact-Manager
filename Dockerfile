@@ -37,7 +37,6 @@ RUN git clone --depth 1 --branch v2025.03.17.00 https://github.com/facebook/foll
     cd build && \
     cmake .. -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_CXX_COMPILER=g++-12 \
-    -DBUILD_BENCHMARKS=ON \
     -DCMAKE_CXX_STANDARD=20 \
     -DCMAKE_CXX_STANDARD_REQUIRED=ON \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON && \
@@ -68,4 +67,10 @@ RUN wget https://github.com/mongodb/mongo-cxx-driver/archive/r4.0.0.tar.gz && \
     sudo make install
 
 WORKDIR /KuMyS
+
 COPY . .
+RUN  cd main-server && mkdir build && cd build && cmake ..
+
+WORKDIR main-server/build/
+
+
