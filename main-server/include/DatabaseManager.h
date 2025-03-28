@@ -6,7 +6,6 @@
 #define KUMYS_ARTIFACT_MANAGER_DATABESMANGER_H
 
 #include "HeavyJson.h"
-#include <folly/futures/Future.h>
 #include <mongocxx/pool.hpp>
 #include <string>
 #include <folly/experimental/coro/Task.h>
@@ -24,12 +23,15 @@ namespace main_server {
         static folly::coro::Task<void> store_package(const HeavyJSON &package);
 
     private:
-        static inline std::unique_ptr<mongocxx::pool> connection_pool_;
+        static std::unique_ptr<mongocxx::pool> connection_pool_;
+        static std::unique_ptr<mongocxx::gridfs::bucket> gridfs_bucket_;
+
         static inline const std::string DB_NAME = "packages_db";
         static inline const std::string COLLECTION_NAME = "packages";
 
         // Вспомогательный метод для получения соединения
-        static mongocxx::pool::entry get_connection();
+        static folly::coro::Task<mongocxx::pool::entry> get_connection_async();
+        static constexpr const char* BUCKET_NAME = "fs";
     };
 } // namespace main_server
 

@@ -5,7 +5,6 @@
 #include "../include/RequestHandler.h"
 #include <folly/futures/Future.h>
 #include "../include/DatabaseManager.h"
-#include <folly/experimental/coro/BlockingWait.h>
 #include <folly/experimental/coro/Sleep.h>
 #include <iostream>
 #include <memory>
@@ -26,7 +25,7 @@ main_server::RequestHandler::RequestHandler(
 
 void main_server::RequestHandler::start() {
     stopped_.store(false);
-    worker_ = std::thread([this] { processLoop(); });
+    std::thread([this] { processLoop(); }).detach();
 }
 
 

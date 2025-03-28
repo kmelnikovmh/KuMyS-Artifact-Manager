@@ -3,29 +3,38 @@
 //
 
 #include "../include/DatabaseManager.h"
-
 #include <bsoncxx/builder/stream/document.hpp>
-#include <bsoncxx/json.hpp>
-#include <folly/executors/CPUThreadPoolExecutor.h>
+#include <bsoncxx/exception/exception.hpp>
 #include <folly/experimental/coro/BlockingWait.h>
+#include <mongocxx/exception/gridfs_exception.hpp>
 #include <iostream>
-#include <tclDecls.h>
 // TODO
 
 using bsoncxx::builder::basic::kvp;
 using bsoncxx::builder::basic::make_document;
+using namespace bsoncxx::builder;
 
-static std::shared_ptr<folly::CPUThreadPoolExecutor> db_executor;
+std::unique_ptr<mongocxx::pool> main_server::DatabaseManager::connection_pool_ = nullptr;
+std::unique_ptr<mongocxx::gridfs::bucket> main_server::DatabaseManager::gridfs_bucket_ = nullptr;
 
 void main_server::DatabaseManager::init(const std::string& connection_uri) {
     if (!connection_pool_) {
         mongocxx::uri uri(connection_uri);
-        connection_pool_ = std::make_unique<mongocxx::pool>(uri);
-        db_executor = std::make_shared<folly::CPUThreadPoolExecutor>(4);
-        auto conn = connection_pool_->acquire();
-        auto collection = (*conn)[DB_NAME][COLLECTION_NAME];
 
-        collection.create_index(
+        connection_pool_ = std::make_unique<mongocxx::pool>(uri);
+
+        auto conn = connection_pool_->acquire();
+        auto db = (*conn)[DB_NAME];
+
+        mongocxx::options::gridfs::bucket bucket_options;
+        bucket_options.bucket_name(BUCKET_NAME);
+        bucket_options.chunk_size_bytes(255 * 1024); // 255KB
+
+        gridfs_bucket_ = std::make_unique<mongocxx::gridfs::bucket>(
+                db.gridfs_bucket(bucket_options)
+        );
+
+        db[COLLECTION_NAME].create_index(
                 bsoncxx::builder::stream::document{}
                         << "_id" << 1
                         << bsoncxx::builder::stream::finalize,
@@ -36,8 +45,8 @@ void main_server::DatabaseManager::init(const std::string& connection_uri) {
 }
 
 folly::coro::Task<bool> main_server::DatabaseManager::check_package(std::string& package_id) {
+        auto conn = co_await get_connection_async();
         try {
-            auto conn = get_connection();
             auto collection = (*conn)[DB_NAME][COLLECTION_NAME];
             co_return static_cast<bool>(collection.find_one(make_document(kvp("_id", package_id))));
         } catch (const std::exception& e) {
@@ -46,58 +55,126 @@ folly::coro::Task<bool> main_server::DatabaseManager::check_package(std::string&
         }
 }
 
+
 folly::coro::Task<main_server::HeavyJSON> main_server::DatabaseManager::fetch_package(std::string& package_id) {
+        auto conn = co_await get_connection_async();
+        HeavyJSON package;
+
         try {
-            auto conn = get_connection();
             auto collection = (*conn)[DB_NAME][COLLECTION_NAME];
+            auto doc = collection.find_one(make_document(kvp("_id", package_id)));
 
-            auto filter = bsoncxx::builder::stream::document{}
-                    << "_id" << package_id
-                    << bsoncxx::builder::stream::finalize;
+            if (!doc) throw std::runtime_error("Package not found");
 
-            auto data = collection.find_one(filter.view());
-            HeavyJSON package = toHeavyJSON(bsoncxx::to_json(*data));
+            auto view = doc->view();
+
+            package.id = view["_id"].get_oid().value.to_string();
+            package.request_type = view["request_type"].get_oid().value.to_string();
+            package.name = view["name"].get_oid().value.to_string();
+            package.version = view["version"].get_oid().value.to_string();
+            package.architecture = view["architecture"].get_oid().value.to_string();
+            package.check_sum = view["check_sum"].get_oid().value.to_string();
+            package.file_size = static_cast<uint64_t>(view["file_size"].get_int64().value);
+            package.created_at = view["created_at"].get_oid().value.to_string();
+
+
+            auto file_id = view["file_id"].get_value();
+            auto downloader = gridfs_bucket_->open_download_stream(file_id);
+            package.content.resize(downloader.file_length());
+
+            size_t total_read = 0;
+            constexpr size_t yield_interval = 4 * 1024 * 1024; // 4MB
+
+            while (total_read < downloader.file_length()) {
+                const size_t bytes_read = downloader.read(
+                        package.content.data() + total_read,
+                        downloader.file_length() - total_read
+                );
+
+                total_read += bytes_read;
+
+                if (total_read % yield_interval == 0) {
+                    co_await folly::coro::co_reschedule_on_current_executor;
+                }
+            }
 
             co_return package;
 
-        } catch (const std::exception& e) {
+        } catch (const bsoncxx::exception& e) {
+            std::cerr << "BSON error: " << e.what() << std::endl;
+            throw;
+        } catch (const mongocxx::gridfs_exception& e) {
+            std::cerr << "GridFS error[" << e.code().value() << "]: " << e.what() << std::endl;
+            throw;
+        }catch (const std::exception& e) {
             std::cerr << "Fetch package error: " << e.what() << std::endl;
             throw;
         }
 
-
 }
 
 folly::coro::Task<void> main_server::DatabaseManager::store_package(const HeavyJSON& package) {
+        auto conn = co_await get_connection_async();
         try {
-            auto conn = get_connection();
+
+            mongocxx::options::gridfs::upload options{};
+            options.metadata(make_document(
+                    kvp("version", package.version),
+                    kvp("architecture", package.architecture)
+            ));
+
+            auto uploader = gridfs_bucket_->open_upload_stream(
+                    package.id,  // filename
+                    options      // options
+            );
+
+
+            const size_t chunk_size = 255 * 1024; // 255KB
+            size_t offset = 0;
+
+            while (offset < package.content.size()) {
+                const size_t bytes_to_write = std::min(
+                        chunk_size,
+                        package.content.size() - offset
+                );
+
+                uploader.write(package.content.data() + offset, bytes_to_write);
+                offset += bytes_to_write;
+
+                if ((offset % (4 * 1024 * 1024)) == 0) {
+                    co_await folly::coro::co_reschedule_on_current_executor;
+                }
+            }
+
+
+            auto result = uploader.close();
+
             auto collection = (*conn)[DB_NAME][COLLECTION_NAME];
+            auto doc = make_document(
+                    kvp("_id", package.id),
+                    kvp("request_type", package.request_type),
+                    kvp("name", package.name),
+                    kvp("version", package.version),
+                    kvp("architecture", package.architecture),
+                    kvp("check_sum", package.check_sum),
+                    kvp("file_size", static_cast<int64_t>(package.file_size)),
+                    kvp("file_id", result.id()),
+                    kvp("created_at", package.created_at)
+            );
 
-            using namespace bsoncxx::builder;
-            stream::document builder;
 
-            builder
-                    << "_id" << package.id
-                    << "request_type" << package.request_type
-                    << "name" << package.name
-                    << "version" << package.version
-                    << "architecture" << package.architecture
-                    << "check_sum" << package.check_sum
-                    << "file_size" << static_cast<int64_t>(package.file_size)
-                    << "content" << bsoncxx::types::b_binary{
-                    bsoncxx::binary_sub_type::k_binary,
-                    static_cast<uint32_t>(package.content.size()),
-                    package.content.data()
-                    }
-                    << "created_at" << package.created_at;
-
-            collection.insert_one(builder.view());
-        } catch (const std::exception& e) {
+            collection.insert_one(doc.view());
+        } catch (const mongocxx::gridfs_exception& e) {
+            std::cerr << "GridFS Error[" << e.code().value() << "]: "
+                      << e.what() << std::endl;
+            throw;
+        }catch (const std::exception& e) {
             std::cerr << "Store package error: " << e.what() << std::endl;
             throw;
         }
 }
 
-mongocxx::pool::entry main_server::DatabaseManager::get_connection() {
-    return connection_pool_->acquire();
+folly::coro::Task<mongocxx::pool::entry> main_server::DatabaseManager::get_connection_async() {
+    co_return connection_pool_->acquire();
 }
+

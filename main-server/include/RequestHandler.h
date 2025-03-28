@@ -4,6 +4,7 @@
 #ifndef KUMYS_ARTIFACT_MANAGER_REQUESTHANDLER_H
 #define KUMYS_ARTIFACT_MANAGER_REQUESTHANDLER_H
 
+
 #include "HeavyJson.h"
 #include "LightJson.h"
 #include <folly/MPMCQueue.h>
@@ -17,8 +18,7 @@ namespace main_server {
     public:
         RequestHandler(folly::MPMCQueue<LightJSON> &input_queue,
                        folly::MPMCQueue<LightJSON> &download_queue,
-                       folly::MPMCQueue<HeavyJSON> &output_queue,
-                       );
+                       folly::MPMCQueue<HeavyJSON> &output_queue);
 
         void start();
         void stop();
