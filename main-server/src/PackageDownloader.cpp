@@ -17,12 +17,6 @@
 #include <thread>
 #include <fstream>
 #include <sstream>
-
-struct Repo {
-    std::string name;
-    std::string subnet_url;
-    std::vector<std::string> proxy_urls;
-};
     
 main_server::PackageDownloader::PackageDownloader(
     folly::MPMCQueue<LightJSON> &download_queue,
@@ -45,15 +39,16 @@ void main_server::PackageDownloader::update_repos() {
     std::ifstream file("../repos.list");
     std::string line;
     while(std::getline(file, line)) {
-        if (line[0] == '#') return;
+        if (line.empty() || line[0] == '#') continue;
         std::istringstream iss(line);
         Repo repo;
         std::string url;
         iss >> repo.name;
         while (iss >> url) {
             repo.proxy_urls.push_back(url);
+            std::cout << repo.proxy_urls.back() << std::endl;
         }
-        allowed_repositories[name] = repo;
+        allowed_repositories_[repo.name] = repo;
     }
 }
 
@@ -75,8 +70,9 @@ void main_server::PackageDownloader::process_loop() {
 
 std::string main_server::PackageDownloader::generate_request(const LightJSON& package) {
     web::uri_builder builder;
+    if (!allowed_repositories_.contains(package.repo)) std::cout << "suck my dick" << std::endl;
     Repo& repo = allowed_repositories_[package.repo];
-    builder.set_scheme(U("http"));
+    builder.set_scheme(U("http"))
         .set_host(U(repo.proxy_urls[0]))
         .append_path(U(package.path))
         .append_path(U(package.name + "_" + package.version + "_" + package.architecture + ".deb"));

@@ -14,11 +14,18 @@
 #include <thread>
 
 namespace main_server{
+    
+struct Repo {
+    std::string name;
+    std::string subnet_url;
+    std::vector<std::string> proxy_urls;
+};
 
 class PackageDownloader {
 public:
     PackageDownloader(folly::MPMCQueue<LightJSON> &download_queue,
         folly::MPMCQueue<HeavyJSON> &output_queue);
+
     void start();
     void stop();
 
@@ -26,7 +33,7 @@ private:
     void process_loop();
     void download_package(const LightJSON& package);
     static void store_to_database(const HeavyJSON& package);
-    void generate_request(const LightJSON& package);
+    std::string generate_request(const LightJSON& package);
     void update_repos();
 
     folly::MPMCQueue<LightJSON> &download_queue_;
