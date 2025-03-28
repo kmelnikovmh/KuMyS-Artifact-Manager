@@ -11,8 +11,18 @@
 #include <cpprest/uri_builder.h>
 #include <cpprest/http_client.h>
 #include <iostream>
+#include <unordered_map>
 #include <memory>
 #include <utility>
+#include <thread>
+#include <fstream>
+#include <sstream>
+
+struct Repo {
+    std::string name;
+    std::string subnet_url;
+    std::vector<std::string> proxy_urls;
+};
     
 main_server::PackageDownloader::PackageDownloader(
     folly::MPMCQueue<LightJSON> &download_queue,
@@ -24,11 +34,28 @@ main_server::PackageDownloader::PackageDownloader(
 }
 
 void main_server::PackageDownloader::start() {
+    update_repos();
     is_running_.store(true);
     worker_ = std::thread([this]() { process_loop(); }); 
     worker_.detach();
 }
 
+void main_server::PackageDownloader::update_repos() {
+    allowed_repositories_.clear();
+    std::ifstream file("../repos.list");
+    std::string line;
+    while(std::getline(file, line)) {
+        if (line[0] == '#') return;
+        std::istringstream iss(line);
+        Repo repo;
+        std::string url;
+        iss >> repo.name;
+        while (iss >> url) {
+            repo.proxy_urls.push_back(url);
+        }
+        allowed_repositories[name] = repo;
+    }
+}
 
 void main_server::PackageDownloader::stop() {
     is_running_.store(false);
@@ -46,15 +73,18 @@ void main_server::PackageDownloader::process_loop() {
     }
 }
 
-void main_server::PackageDownloader::download_package(const LightJSON& package) {
+std::string main_server::PackageDownloader::generate_request(const LightJSON& package) {
     web::uri_builder builder;
-    builder.set_scheme(U("https"))
-        .set_host(U(package.repo))
+    Repo& repo = allowed_repositories_[package.repo];
+    builder.set_scheme(U("http"));
+        .set_host(U(repo.proxy_urls[0]))
         .append_path(U(package.path))
         .append_path(U(package.name + "_" + package.version + "_" + package.architecture + ".deb"));
-    
-    const std::string url = builder.to_string();
-    
+    return builder.to_string();
+}
+
+void main_server::PackageDownloader::download_package(const LightJSON& package) {
+    const std::string url = generate_request(package);
     web::http::client::http_client client(U(url));
     client.request(web::http::methods::GET)
         .then([this, package](const web::http::http_response& response) {
@@ -85,6 +115,7 @@ void main_server::PackageDownloader::download_package(const LightJSON& package) 
 }
 
 void main_server::PackageDownloader::store_to_database(const HeavyJSON& package) {
-    main_server::DatabaseManger::store_package(package);
+    std::cout << package.name << package.file_size << package.created_at << std::endl;
+    // main_server::DatabaseManger::store_package(package);
 }
 

@@ -26,12 +26,16 @@ private:
     void process_loop();
     void download_package(const LightJSON& package);
     static void store_to_database(const HeavyJSON& package);
+    void generate_request(const LightJSON& package);
+    void update_repos();
+
     folly::MPMCQueue<LightJSON> &download_queue_;
     folly::MPMCQueue<HeavyJSON> &output_queue_;
     std::thread worker_;
     folly::CPUThreadPoolExecutor executor_;
 
     std::atomic<bool> is_running_{false};
+    std::unordered_map<std::string, Repo> allowed_repositories_;
 };
 }// namespace main_server
 
