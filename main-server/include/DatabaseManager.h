@@ -21,7 +21,7 @@ namespace main_server {
 
         static folly::coro::Task<void> store_package(const HeavyJSON &package);
 
-    private:
+    // private:
         static std::unique_ptr<mongocxx::pool> connection_pool_;
         static std::unique_ptr<mongocxx::gridfs::bucket> gridfs_bucket_;
         static std::atomic<bool> initialized_;
