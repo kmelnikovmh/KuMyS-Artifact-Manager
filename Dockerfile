@@ -16,7 +16,12 @@ RUN apt-get update && \
     libfmt-dev \
     zlib1g-dev \
     libcpprest-dev \
+    gzip \
+    gdb \
+    valgrind \
     sudo
+
+RUN  sudo apt-get install -y netcat-traditional
 
 RUN apt-get install libgoogle-glog-dev -y
 
@@ -66,11 +71,5 @@ RUN wget https://github.com/mongodb/mongo-cxx-driver/archive/r4.0.0.tar.gz && \
     make -j$(nproc) && \
     sudo make install
 
-WORKDIR /KuMyS
-
-COPY . .
-RUN  cd main-server && mkdir build && cd build && cmake ..
-
-WORKDIR main-server/build/
-
-
+WORKDIR /app/build
+CMD ["bash"]
