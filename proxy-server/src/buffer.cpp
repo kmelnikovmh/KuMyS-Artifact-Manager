@@ -1,13 +1,21 @@
 #include <cpprest/http_listener.h>
 #include <cpprest/http_client.h>
-#include "LightJson.hpp"            // Нахуя?
-#include "HeavyJson.hpp"            // Нахуя?
+#include "LightJson.hpp"            // todo
+#include "HeavyJson.hpp"            // todo
+#include "buffer.h"
 #include <iostream>
 #include <thread>
 #include <future>
 #include <mutex>
 #include <unordered_map>
 #include <vector>
+
+#define DEBUG_MODE_BUFFER_
+#ifdef DEBUG_MODE_BUFFER_
+    #define debug_cout_buffer_ std::cout
+#else
+    #define debug_cout_buffer_ if (false) std::cout
+#endif
 
 namespace kymus_proxy_server {
 class PromiseAtomicMap {
@@ -69,15 +77,16 @@ private:
     // HEAD FUNCTION
     void handle_request(const web::http::http_request& request) {
         // Accept
-        std::cout << "-------------------------------- open request\n";
-        std::cout << request.to_string();
+        debug_cout_buffer_ << "-------------------------------- open request\n";
+        debug_cout_buffer_ << request.to_string();
 
         // Send request
         JsonSender &m_json_sender = get_json_sender(main_server_uri);
         web::http::status_code main_server_code = m_json_sender.json_send(request);
         if (main_server_code == 400) {
             request.reply(web::http::status_codes::InternalError, "Invalid request from proxy-server to main-server\n");
-            std::cout << "Invalid request from proxy-server to main-server\n";
+            debug_cout_buffer_ << "Invalid request from proxy-server to main-server\n";
+            debug_cout_buffer_ << "-------------------------------- close request\n\n";
             return;
         }
         
@@ -87,7 +96,7 @@ private:
             std::string original_id_client = request.headers().find("X-Real-IP")->second;
 
             std::future<std::vector<uint8_t>> req_future = m_map.create_and_return_future(original_id_client);
-            std::cout << ". waiting promise\n";
+            debug_cout_buffer_ << ". waiting promise\n\n\n";
             std::vector<uint8_t> content = req_future.get();
             
             // Настроить заголовки
@@ -96,7 +105,7 @@ private:
             response.headers().set_content_type("application/x-debian-package");
             response.set_body(content);
             request.reply(response);
-            std::cout << "-------------------------------- close request\n\n";
+            debug_cout_buffer_ << "-------------------------------- close\n\n";
         }).detach();
     }
 
@@ -105,13 +114,16 @@ private:
         return m_sender;
     } 
 public:
-    NginxListener(const std::string& nginx_uri, const std::string& main_server_uri, PromiseAtomicMap& map) : listener(nginx_uri), main_server_uri(main_server_uri), m_map(map) {
+    NginxListener(const std::string& nginx_uri, const std::string& main_server_uri, PromiseAtomicMap& map) : 
+        listener(nginx_uri), 
+        main_server_uri(main_server_uri), 
+        m_map(map) {
         listener.support(std::bind(&NginxListener::handle_request, this, std::placeholders::_1));
     }
 
     void start() {
         listener.open().wait();
-        std::cout << "NginxListener start and listen: " << listener.uri().to_string() << "\n";
+        std::cout << "NginxListener start\n";
     }
 
     void close(){
@@ -128,6 +140,7 @@ private:
 
     // HEAD FUNCTION
     void handle_response(const web::http::http_request& request) {
+        debug_cout_buffer_ << request.to_string();
         web::json::value json = request.extract_json().get();
         const std::string original_id_client = json["id"].as_string();
         // Разобраться с кодировкой бинарей из json
@@ -135,16 +148,18 @@ private:
         std::vector<uint8_t> content = {0, 1, 2, 3, 4, 5};
 
         m_map.set_future(original_id_client, content);
-        std::cout << ". set future\n";
+        debug_cout_buffer_ << ". set future\n";
     }
 public:
-    MainListener(const std::string& main_uri, PromiseAtomicMap& map) : listener(main_uri), m_map(map) {
+    MainListener(const std::string& main_uri, PromiseAtomicMap& map) : 
+        listener(main_uri), 
+        m_map(map) {
         listener.support(std::bind(&MainListener::handle_response, this, std::placeholders::_1));
     }
 
     void start(){
         listener.open().wait();
-        std::cout << "MainListener start and listen: " << listener.uri().to_string() << "\n";
+        std::cout << "MainListener start\n";
     }
     void close(){
         listener.close().wait();
@@ -154,25 +169,36 @@ public:
 }
 
 using namespace kymus_proxy_server;
-// nginx_listen_port, main_send_ip, main_send_port, main_listen_port,  (example: 6000 127.0.0.1 6500 7000")
+
+// variables: buffer_listener_nginx_port, main_server_ip, main_server_port, buffer_listener_main_port, buffer_ip_out 
+// example: 6000 127.0.0.1 6500 7000 optional: 127.0.0.1
 int main (int argc, char *argv[]) {
-    if (argc != 5) {
+    if (argc < 5) {
         std::cout << "Invalid input parameters\n";
         return 1;
     }
-    std::string nginx_listen_port = argv[1];
-    std::string main_send_ip = argv[2];
-    std::string main_send_port = argv[3];
-    std::string main_listen_port = argv[4];
+    std::string buffer_listener_nginx_port = argv[1];
+    std::string main_server_ip = argv[2];
+    std::string main_server_port = argv[3];
+    std::string buffer_listener_main_port = argv[4];
+
+    std::string buffer_ip;
+    if (argc==6) {
+        buffer_ip = argv[5];
+    } else {
+        buffer_ip = "unknow";
+    }
 
     PromiseAtomicMap promise_map;
-    NginxListener nginx("http://127.0.0.1:"+nginx_listen_port, "http://"+main_send_ip+":"+main_send_port, promise_map);
-    MainListener main("http://127.0.0.1:"+main_listen_port, promise_map);
+    NginxListener nginx("http://127.0.0.1:"+buffer_listener_nginx_port, "http://"+main_server_ip+":"+main_server_port, promise_map);
+    MainListener main("http://127.0.0.1:"+buffer_listener_main_port, promise_map);
     
     nginx.start();
     main.start();
+    std::cout << "\nBuffer listening to "<< buffer_listener_nginx_port <<" port from nginx.\n";
+    std::cout << "Buffer connects to main server via "<<main_server_ip<<":"<<main_server_port<<" and wait response to " << buffer_ip <<":"<< buffer_listener_main_port << " port.\n";
 
-    std::cout << "Server running. Press Enter to exit...\n\n";
+    std::cout << "Buffer running. Press Enter to exit...\n\n";
     std::cin.get();
 
     nginx.close();

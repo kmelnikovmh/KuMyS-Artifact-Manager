@@ -25,6 +25,11 @@
 **/*.bin
 
 
+#Proect bin-file
+buffer
+validate_module
+
+
 #IDE-files ignore
 **/.idea/
 **/.vscode/
@@ -34,8 +39,10 @@
 **/*.log
 **/*.cache
 
+
 #MacOS Finder cache ignore
 **/.DS_Store
+
 
 #my mac local file mongocxx
 main-server/mongo-cxx-driver/
