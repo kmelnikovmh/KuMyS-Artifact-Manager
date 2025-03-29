@@ -17,8 +17,13 @@ using namespace bsoncxx::builder;
 std::unique_ptr<mongocxx::pool> main_server::DatabaseManager::connection_pool_ = nullptr;
 std::unique_ptr<mongocxx::gridfs::bucket> main_server::DatabaseManager::gridfs_bucket_ = nullptr;
 
-void main_server::DatabaseManager::init(const std::string& connection_uri) {
-    if (!connection_pool_) {
+std::atomic<bool> main_server::DatabaseManager::initialized_{false};
+std::mutex main_server::DatabaseManager::init_mutex_;
+
+main_server::DatabaseManager::DatabaseManager(const std::string& connection_uri) {
+
+    std::lock_guard<std::mutex> lock(init_mutex_);
+    if (!initialized_.load(std::memory_order_relaxed)) {
         mongocxx::uri uri(connection_uri);
 
         connection_pool_ = std::make_unique<mongocxx::pool>(uri);
@@ -36,11 +41,11 @@ void main_server::DatabaseManager::init(const std::string& connection_uri) {
 
         db[COLLECTION_NAME].create_index(
                 bsoncxx::builder::stream::document{}
-                        << "_id" << 1
-                        << bsoncxx::builder::stream::finalize,
+                        << "id" << 1 << bsoncxx::builder::stream::finalize,
                 mongocxx::options::index{}.unique(true)
         );
 
+        initialized_.store(true, std::memory_order_release);
     }
 }
 
