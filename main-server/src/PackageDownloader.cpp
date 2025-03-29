@@ -80,9 +80,8 @@ void PackageDownloader::download_package(const LightJSON& package) {
                     if (response.status_code() != web::http::status_codes::OK) {
                         throw std::runtime_error("HTTP error: " + std::to_string(response.status_code()));
                     }
-                    return response.extract_vector();
-                })
-                .then([&](const std::vector<unsigned char>& data) {
+                    
+                    auto data = response.extract_vector().get();
                     HeavyJSON downloaded_package{
                         package.id,
                         package.request_type,
@@ -96,12 +95,18 @@ void PackageDownloader::download_package(const LightJSON& package) {
                         data,
                         utility::datetime::utc_now().to_string()
                     };
+                    for (auto&& header : response.headers()) {
+                        downloaded_package.headers[header.first] = header.second;
+                    }
 
                     if (downloaded_package.request_type != "update") {
                         store_to_database_(downloaded_package);
                     }
                     output_queue_.blockingWrite(std::move(downloaded_package));
                     downloaded = true;
+                })
+                .then([&](const std::vector<unsigned char>& data) {
+                    // logging
                 })
                 .wait();
         } catch (const std::exception& e) {

@@ -6,6 +6,7 @@
 #define KUMYS_ARTIFACT_MANAGER_HEAVYJSON_H
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 namespace main_server {
     struct HeavyJSON {
@@ -20,6 +21,7 @@ namespace main_server {
         std::size_t file_size;
         std::vector<unsigned char> content;
         std::string created_at;
+        std::unordered_map<std::string, std::string> headers;
     };
 
 } // namespace main_server
