@@ -21,7 +21,6 @@ namespace main_server {
 
         static folly::coro::Task<void> store_package(const HeavyJSON &package);
 
-    // private:
         static std::unique_ptr<mongocxx::pool> connection_pool_;
         static std::unique_ptr<mongocxx::gridfs::bucket> gridfs_bucket_;
         static std::atomic<bool> initialized_;
@@ -30,7 +29,6 @@ namespace main_server {
         static inline const std::string DB_NAME = "packages_db";
         static inline const std::string COLLECTION_NAME = "packages";
 
-        // Вспомогательный метод для получения соединения
         static folly::coro::Task<mongocxx::pool::entry> get_connection_async();
         static constexpr const char* BUCKET_NAME = "fs";
 

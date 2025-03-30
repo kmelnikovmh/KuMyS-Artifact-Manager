@@ -8,6 +8,8 @@ RUN apt-get update && \
     cmake \
     git \
     g++-12 \
+    netcat-traditional \
+    libgoogle-glog-dev \
     libboost-all-dev \
     libdouble-conversion-dev \
     libevent-dev \
@@ -20,10 +22,6 @@ RUN apt-get update && \
     gdb \
     valgrind \
     sudo
-
-RUN  sudo apt-get install -y netcat-traditional
-
-RUN apt-get install libgoogle-glog-dev -y
 
 WORKDIR /tmp
 RUN git config --global http.sslVerify false

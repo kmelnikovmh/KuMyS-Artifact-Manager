@@ -29,7 +29,6 @@ public:
   HttpServer(HttpServer &&) = delete;
   HttpServer &operator=(HttpServer &&) = delete;
 
-// private:
   void handle_get_request(
       const web::http::http_request &request); // check exist packages
   void handle_post_request(

@@ -9,18 +9,17 @@
 #include "../include/RequestHandler.h"
 #include <folly/MPMCQueue.h>
 #include <iostream>
-#include <string>
 #include <mongocxx/instance.hpp>
+#include <string>
 
-constexpr std::size_t QUEUE_CAPACITY = 1000;
-constexpr std::size_t DB_PORT = 27017;
+constexpr std::size_t QUEUE_CAPACITY   = 1000;
+constexpr std::size_t DB_PORT          = 27017;
 constexpr std::size_t HTTP_SERVER_PORT = 8081;
-
 
 int main() {
     mongocxx::instance instance{};
 
-    try{
+    try {
         std::cout << "Start server-setup" << std::endl;
 
         // DB-init
@@ -38,8 +37,7 @@ int main() {
         std::cout << "Server start" << std::endl;
 
         // start handler
-        main_server::RequestHandler handler(input_queue, download_queue,
-                                            output_queue);
+        main_server::RequestHandler handler(input_queue, download_queue, output_queue);
         handler.start();
         std::cout << "Handler start" << std::endl;
 
@@ -53,7 +51,7 @@ int main() {
         server.stop();
         handler.stop();
         // downloader.stop();
-    }catch (const std::exception& e) {
+    } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
     }
 
