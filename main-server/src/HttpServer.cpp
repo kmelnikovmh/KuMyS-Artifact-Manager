@@ -57,7 +57,9 @@ void main_server::HttpServer::handle_post_request(const web::http::http_request&
                                         .name         = json_body["name"].as_string(),
                                         .version      = json_body["version"].as_string(),
                                         .architecture = json_body["architecture"].as_string(),
-                                        .check_sum    = json_body["check_sum"].as_string()};
+                                        .check_sum    = json_body["check_sum"].as_string(),
+                                        .repo         = json_body["repo"].as_string(),
+                                        .path         = json_body["path"].as_string()};
 
             if (validate_light_json(lightJson_request)) {
                 input_queue_.blockingWrite(std::move(lightJson_request));
@@ -83,6 +85,8 @@ void main_server::HttpServer::response_request() {
     request_body[U("version")] = json::value::string(utility::conversions::to_string_t(heavyJson.version));
     request_body[U("architecture")] = json::value::string(utility::conversions::to_string_t(heavyJson.architecture));
     request_body[U("check_sum")] = json::value::string(utility::conversions::to_string_t(heavyJson.check_sum));
+    request_body[U("repo")] = json::value::string(utility::conversions::to_string_t(heavyJson.repo));
+    request_body[U("path")] = json::value::string(utility::conversions::to_string_t(heavyJson.path));
     request_body[U("file_size")] = json::value::number(heavyJson.file_size);
     request_body[U("created_at")] = json::value::string(utility::conversions::to_string_t(heavyJson.created_at));
 
@@ -101,6 +105,6 @@ void main_server::HttpServer::response_request() {
 
 bool main_server::HttpServer::validate_light_json(const main_server::LightJSON& json) {
     const std::vector<std::reference_wrapper<const std::string>> fields = {
-        json.id, json.request_type, json.name, json.version, json.architecture, json.check_sum};
+        json.id, json.request_type, json.name, json.version, json.architecture, json.check_sum, json.repo, json.path };
     return std::all_of(fields.begin(), fields.end(), [](const std::string& fields) { return !fields.empty(); });
 }

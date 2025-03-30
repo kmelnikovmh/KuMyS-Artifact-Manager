@@ -40,6 +40,8 @@ TEST_F(HttpServerTest, HandleValidPostRequest) {
     request_body[U("version")] = json::value::string("1.0");
     request_body[U("architecture")] = json::value::string("amd64");
     request_body[U("check_sum")] = json::value::string("sha256:test");
+    request_body[U("repo")] = json::value::string("test_repo");
+    request_body[U("path")] = json::value::string("path/to/package");
 
     http_request request(methods::POST);
     request.set_body(request_body);
@@ -119,6 +121,8 @@ TEST_F(HttpServerTest, HandleInvalidFieldTypes) {
     invalid_body[U("version")] = json::value::string("1.0");
     invalid_body[U("architecture")] = json::value::string("amd64");
     invalid_body[U("check_sum")] = json::value::string("sha256:test");
+    invalid_body[U("repo")] = json::value::string("test_repo");
+    invalid_body[U("path")] = json::value::string("path/to/package");
 
     http_request request(methods::POST);
     request.set_body(invalid_body);
@@ -137,6 +141,8 @@ TEST_F(HttpServerTest, HandleEmptyFieldValues) {
     invalid_body[U("version")] = json::value::string("1.0");
     invalid_body[U("architecture")] = json::value::string("amd64");
     invalid_body[U("check_sum")] = json::value::string("sha256:test");
+    invalid_body[U("repo")] = json::value::string("test_repo");
+    invalid_body[U("path")] = json::value::string("path/to/package");
 
     http_request request(methods::POST);
     request.set_body(invalid_body);
@@ -158,6 +164,8 @@ TEST_F(HttpServerTest, HandleVeryLargeRequest) {
     large_body[U("version")] = json::value::string("1.0");
     large_body[U("architecture")] = json::value::string("amd64");
     large_body[U("check_sum")] = json::value::string("sha256:test");
+    large_body[U("repo")] = json::value::string("test_repo");
+    large_body[U("path")] = json::value::string("path/to/package");
 
     http_request request(methods::POST);
     request.set_body(large_body);
