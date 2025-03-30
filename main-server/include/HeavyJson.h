@@ -4,9 +4,11 @@
 
 #ifndef KUMYS_ARTIFACT_MANAGER_HEAVYJSON_H
 #define KUMYS_ARTIFACT_MANAGER_HEAVYJSON_H
+
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <bsoncxx/types/bson_value/view.hpp>
 
 namespace main_server {
     struct HeavyJSON {
@@ -18,10 +20,13 @@ namespace main_server {
         std::string check_sum;
         std::string repo;
         std::string path;
-        std::size_t file_size;
-        std::vector<unsigned char> content;
+
+        uint64_t file_size;
+        std::vector<uint8_t> content;
         std::string created_at;
         std::unordered_map<std::string, std::string> headers;
+
+        bsoncxx::types::bson_value::view file_id;
     };
 
 } // namespace main_server

@@ -105,7 +105,7 @@ void PackageDownloader::download_package(const LightJSON& package) {
                     output_queue_.blockingWrite(std::move(downloaded_package));
                     downloaded = true;
                 })
-                .then([&](const std::vector<unsigned char>& data) {
+                .then([&]() {
                     // logging
                 })
                 .wait();
