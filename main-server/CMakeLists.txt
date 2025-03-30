@@ -27,8 +27,6 @@ link_directories(
 find_package(cpprestsdk REQUIRED)
 find_package(folly REQUIRED)
 find_package(GFlags REQUIRED)
-# find_package(GTest REQUIRED)
-# find_package(GMock REQUIRED)
 
 
 add_library(kumys_lib STATIC
@@ -57,5 +55,5 @@ add_executable(kumys_server src/main.cpp)
 target_link_libraries(kumys_server PRIVATE kumys_lib)
 
 #Include tests
-# enable_testing()
-# add_subdirectory(tests)
+enable_testing()
+add_subdirectory(tests)

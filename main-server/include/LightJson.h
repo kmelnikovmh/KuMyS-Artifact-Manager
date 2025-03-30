@@ -14,6 +14,8 @@ struct LightJSON {
   std::string version;
   std::string architecture;
   std::string check_sum;
+  std::string repo;
+  std::string path;
 };
 
 } // namespace main_server

@@ -9,11 +9,13 @@
 #include "LightJson.h"
 #include <folly/MPMCQueue.h>
 #include <cpprest/http_listener.h>
+#include <cpprest/http_client.h>
 
 
 namespace main_server {
 class HttpServer {
 public:
+  friend class TestableHttpServer;
   explicit HttpServer(const std::string &url,
                       folly::MPMCQueue<LightJSON> &input_queue,
                       folly::MPMCQueue<HeavyJSON> &output_queue);
@@ -27,7 +29,7 @@ public:
   HttpServer(HttpServer &&) = delete;
   HttpServer &operator=(HttpServer &&) = delete;
 
-private:
+// private:
   void handle_get_request(
       const web::http::http_request &request); // check exist packages
   void handle_post_request(
