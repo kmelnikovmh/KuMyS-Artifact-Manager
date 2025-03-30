@@ -39,6 +39,10 @@ main_server::DatabaseManager::DatabaseManager(const std::string& connection_uri)
                 db.gridfs_bucket(bucket_options)
         );
 
+        auto ping_cmd = bsoncxx::builder::stream::document{}
+            << "ping" << 1 
+            << bsoncxx::builder::stream::finalize;
+
         db[COLLECTION_NAME].create_index(
                 bsoncxx::builder::stream::document{}
                         << "id" << 1 << bsoncxx::builder::stream::finalize,
@@ -73,14 +77,14 @@ folly::coro::Task<main_server::HeavyJSON> main_server::DatabaseManager::fetch_pa
 
             auto view = doc->view();
 
-            package.id = view["_id"].get_oid().value.to_string();
-            package.request_type = view["request_type"].get_oid().value.to_string();
-            package.name = view["name"].get_oid().value.to_string();
-            package.version = view["version"].get_oid().value.to_string();
-            package.architecture = view["architecture"].get_oid().value.to_string();
-            package.check_sum = view["check_sum"].get_oid().value.to_string();
+            package.id = std::string(view["_id"].get_string().value);
+            package.request_type = std::string(view["request_type"].get_string().value);
+            package.name = std::string(view["name"].get_string().value);
+            package.version = std::string(view["version"].get_string().value);
+            package.architecture = std::string(view["architecture"].get_string().value);
+            package.check_sum = std::string(view["check_sum"].get_string().value);
             package.file_size = static_cast<uint64_t>(view["file_size"].get_int64().value);
-            package.created_at = view["created_at"].get_oid().value.to_string();
+            package.created_at = std::string(view["created_at"].get_string().value);
 
 
             auto file_id = view["file_id"].get_value();

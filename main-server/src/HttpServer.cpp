@@ -86,9 +86,14 @@ void main_server::HttpServer::response_request() {
     request_body[U("file_size")] = json::value::number(heavyJson.file_size);
     request_body[U("created_at")] = json::value::string(utility::conversions::to_string_t(heavyJson.created_at));
 
-    
     std::string base64_content = utility::conversions::to_base64(heavyJson.content);
     request_body[U("content")] = json::value::string(base64_content);
+
+    json::value headers_json;
+    for (const auto& [key, value] : heavyJson.headers) {
+        headers_json[key] = json::value::string(value);
+    }
+    request_body[U("headers")] = headers_json;
 
     client.request(methods::POST, U("/"), request_body)
         .wait();
