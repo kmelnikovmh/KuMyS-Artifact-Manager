@@ -19,7 +19,8 @@ main_server::RequestHandler::RequestHandler(
         folly::MPMCQueue<LightJSON> &download_queue,
         folly::MPMCQueue<HeavyJSON> &output_queue)
         : input_queue_(input_queue), download_queue_(download_queue),
-          output_queue_(output_queue) {
+          output_queue_(output_queue),
+          executor_(std::make_shared<folly::CPUThreadPoolExecutor>(std::thread::hardware_concurrency())) {
 
 }
 
@@ -38,13 +39,10 @@ void main_server::RequestHandler::stop() {
 void main_server::RequestHandler::processLoop() {
     while (!stopped_.load()) {
         LightJSON package;
-        if (input_queue_.readIfNotEmpty(package)) {
-            folly::coro::co_invoke([this, pkg = std::move(package)] {
-                return processPackage(std::move(pkg));
-            }).scheduleOn(executor_.get()).start();
-        } else {
-            std::this_thread::yield();
-        }
+        input_queue_.blockingRead(package);
+        folly::coro::co_invoke([this, pkg = std::move(package)] {
+            return processPackage(std::move(pkg));
+        }).scheduleOn(executor_.get()).start();
 
     }
 }
