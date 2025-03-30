@@ -39,10 +39,6 @@ main_server::DatabaseManager::DatabaseManager(const std::string& connection_uri)
                 db.gridfs_bucket(bucket_options)
         );
 
-        auto ping_cmd = bsoncxx::builder::stream::document{}
-            << "ping" << 1 
-            << bsoncxx::builder::stream::finalize;
-
         db[COLLECTION_NAME].create_index(
                 bsoncxx::builder::stream::document{}
                         << "id" << 1 << bsoncxx::builder::stream::finalize,
@@ -83,9 +79,18 @@ folly::coro::Task<main_server::HeavyJSON> main_server::DatabaseManager::fetch_pa
             package.version = std::string(view["version"].get_string().value);
             package.architecture = std::string(view["architecture"].get_string().value);
             package.check_sum = std::string(view["check_sum"].get_string().value);
+            package.repo = std::string(view["repo"].get_string().value);
+            package.path = std::string(view["path"].get_string().value);
             package.file_size = static_cast<uint64_t>(view["file_size"].get_int64().value);
             package.created_at = std::string(view["created_at"].get_string().value);
 
+            if (view["headers"]) {
+                auto headers_view = view["headers"].get_document().view();
+                for (const auto& element : headers_view) {
+                    package.headers[std::string(element.key())] = 
+                        std::string(element.get_string().value);
+                }
+            }    
 
             auto file_id = view["file_id"].get_value();
             auto downloader = gridfs_bucket_->open_download_stream(file_id);
@@ -158,6 +163,11 @@ folly::coro::Task<void> main_server::DatabaseManager::store_package(const HeavyJ
 
             auto result = uploader.close();
 
+            auto headers_doc = bsoncxx::builder::basic::document{};
+            for (const auto& [key, value] : package.headers) {
+                headers_doc.append(kvp(key, value));
+            }
+
             auto collection = (*conn)[DB_NAME][COLLECTION_NAME];
             auto doc = make_document(
                     kvp("_id", package.id),
@@ -166,11 +176,13 @@ folly::coro::Task<void> main_server::DatabaseManager::store_package(const HeavyJ
                     kvp("version", package.version),
                     kvp("architecture", package.architecture),
                     kvp("check_sum", package.check_sum),
+                    kvp("repo", package.repo),
+                    kvp("path", package.path),
                     kvp("file_size", static_cast<int64_t>(package.file_size)),
                     kvp("file_id", result.id()),
-                    kvp("created_at", package.created_at)
-            );
-
+                    kvp("created_at", package.created_at),
+                    kvp("headers", headers_doc.extract())
+                );
 
             collection.insert_one(doc.view());
         } catch (const mongocxx::gridfs_exception& e) {

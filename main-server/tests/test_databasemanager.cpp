@@ -26,6 +26,7 @@ protected:
             manager = std::make_unique<DatabaseManager>(
                 "mongodb://root:123@mongodb:27017"
             );
+            std::cout << "here" << std::endl;
         }
         cleanupTestData();
     }
@@ -38,8 +39,14 @@ protected:
         pkg.version = "1.0.0";
         pkg.architecture = "amd64";
         pkg.check_sum = "sha256:test123";
+        pkg.repo = "test-repo";
+        pkg.path = "/test/path";
         pkg.file_size = 1024;
         pkg.content = {0x01, 0x02, 0x03, 0x04};
+        pkg.headers = {
+            {"Content-Type", "application/json"},
+            {"Authorization", "Bearer test-token"}
+        };
         return pkg;
     }
 
@@ -67,6 +74,7 @@ private:
 };
 
 TEST_F(DatabaseManagerTest, StoreAndRetrievePackage) {
+    std::cout << "here" << std::endl;
     auto package = createTestPackage();
     
     // Test store
@@ -91,9 +99,22 @@ TEST_F(DatabaseManagerTest, StoreAndRetrievePackage) {
 
     // Validate data
     EXPECT_EQ(retrieved.id, package.id);
+    EXPECT_EQ(retrieved.request_type, package.request_type);
     EXPECT_EQ(retrieved.name, package.name);
     EXPECT_EQ(retrieved.version, package.version);
+    EXPECT_EQ(retrieved.architecture, package.architecture);
+    EXPECT_EQ(retrieved.check_sum, package.check_sum);
+    EXPECT_EQ(retrieved.repo, package.repo);
+    EXPECT_EQ(retrieved.path, package.path);
+    EXPECT_EQ(retrieved.file_size, package.file_size);
+    EXPECT_EQ(retrieved.created_at, package.created_at);
     EXPECT_EQ(retrieved.content, package.content);
+
+    EXPECT_EQ(retrieved.headers.size(), package.headers.size());
+    for (const auto& [key, value] : package.headers) {
+        EXPECT_TRUE(retrieved.headers.count(key));
+        EXPECT_EQ(retrieved.headers.at(key), value);
+    }
 }
 
 TEST_F(DatabaseManagerTest, CheckNonExistentPackage) {
@@ -145,6 +166,13 @@ TEST_F(DatabaseManagerTest, LargeFileHandling) {
     
     EXPECT_EQ(retrieved.content.size(), package.content.size());
     EXPECT_EQ(retrieved.content.back(), 0xFF);
+    
+    // Проверка заголовков для большого файла
+    EXPECT_EQ(retrieved.headers.size(), package.headers.size());
+    for (const auto& [key, value] : package.headers) {
+        EXPECT_TRUE(retrieved.headers.count(key));
+        EXPECT_EQ(retrieved.headers.at(key), value);
+    }
 }
 
 } // namespace test
