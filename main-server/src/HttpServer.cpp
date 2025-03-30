@@ -5,13 +5,13 @@
 // TODO
 #include "../include/HttpServer.h"
 #include <algorithm>
-#include <functional>
-#include <vector>
-#include <cpprest/http_client.h>
-#include <cpprest/filestream.h>
-#include <cpprest/json.h>
 #include <cpprest/details/basic_types.h>
+#include <cpprest/filestream.h>
+#include <cpprest/http_client.h>
+#include <cpprest/json.h>
+#include <functional>
 #include <utility>
+#include <vector>
 
 using namespace web;
 using namespace web::http;
@@ -24,7 +24,8 @@ main_server::HttpServer::HttpServer(const std::string&           url,
                                     folly::MPMCQueue<HeavyJSON>& output_queue)
     : listener(url)
     , input_queue_(input_queue)
-    , output_queue_(output_queue) {
+    , output_queue_(output_queue)
+    , executor_(std::thread::hardware_concurrency()) {
 
     //   listener.support(methods::GET, [this](const http_request &httpRequest) {
     //   handle_get_request(httpRequest); });
@@ -34,6 +35,8 @@ main_server::HttpServer::HttpServer(const std::string&           url,
 void main_server::HttpServer::start() {
     try {
         listener.open().wait();
+        is_running_.store(true);
+        std::thread([this] { process_loop(); }).detach();
         std::cout << "HTTP Server started at: " << listener.uri().to_string() << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "Server start failed: " << e.what() << std::endl;
@@ -42,6 +45,14 @@ void main_server::HttpServer::start() {
 
 void main_server::HttpServer::stop() {
     listener.close().wait();
+}
+
+void main_server::HttpServer::process_loop() {
+    HeavyJSON package;
+    while (is_running_.load()) {
+        output_queue_.blockingRead(package);
+        executor_.add([this, package = std::move(package)]() mutable { response_request(package); });
+    }
 }
 
 // TODO
@@ -73,22 +84,20 @@ void main_server::HttpServer::handle_post_request(const web::http::http_request&
     });
 }
 
-void main_server::HttpServer::response_request() {
-    HeavyJSON heavyJson;
-    output_queue_.blockingRead(heavyJson);
-    http_client client(U("http://127.0.0.1:7000"));
-    
+void main_server::HttpServer::response_request(const HeavyJSON& heavyJson) {
+    http_client client(U("http://172.17.0.1:7000"));
+
     json::value request_body;
-    request_body[U("id")] = json::value::string(heavyJson.id);
+    request_body[U("id")]           = json::value::string(heavyJson.id);
     request_body[U("request_type")] = json::value::string(utility::conversions::to_string_t(heavyJson.request_type));
-    request_body[U("name")] = json::value::string(utility::conversions::to_string_t(heavyJson.name));
-    request_body[U("version")] = json::value::string(utility::conversions::to_string_t(heavyJson.version));
+    request_body[U("name")]         = json::value::string(utility::conversions::to_string_t(heavyJson.name));
+    request_body[U("version")]      = json::value::string(utility::conversions::to_string_t(heavyJson.version));
     request_body[U("architecture")] = json::value::string(utility::conversions::to_string_t(heavyJson.architecture));
-    request_body[U("check_sum")] = json::value::string(utility::conversions::to_string_t(heavyJson.check_sum));
-    request_body[U("repo")] = json::value::string(utility::conversions::to_string_t(heavyJson.repo));
-    request_body[U("path")] = json::value::string(utility::conversions::to_string_t(heavyJson.path));
-    request_body[U("file_size")] = json::value::number(heavyJson.file_size);
-    request_body[U("created_at")] = json::value::string(utility::conversions::to_string_t(heavyJson.created_at));
+    request_body[U("check_sum")]    = json::value::string(utility::conversions::to_string_t(heavyJson.check_sum));
+    request_body[U("repo")]         = json::value::string(utility::conversions::to_string_t(heavyJson.repo));
+    request_body[U("path")]         = json::value::string(utility::conversions::to_string_t(heavyJson.path));
+    request_body[U("file_size")]    = json::value::number(heavyJson.file_size);
+    request_body[U("created_at")]   = json::value::string(utility::conversions::to_string_t(heavyJson.created_at));
 
     std::string base64_content = utility::conversions::to_base64(heavyJson.content);
     request_body[U("content")] = json::value::string(base64_content);
@@ -99,12 +108,11 @@ void main_server::HttpServer::response_request() {
     }
     request_body[U("headers")] = headers_json;
 
-    client.request(methods::POST, U("/"), request_body)
-        .wait();
+    client.request(methods::POST, U("/"), request_body).wait();
 }
 
 bool main_server::HttpServer::validate_light_json(const main_server::LightJSON& json) {
     const std::vector<std::reference_wrapper<const std::string>> fields = {
-        json.id, json.request_type, json.name, json.version, json.architecture, json.check_sum, json.repo, json.path };
+        json.id, json.request_type, json.name, json.version, json.architecture, json.check_sum, json.repo, json.path};
     return std::all_of(fields.begin(), fields.end(), [](const std::string& fields) { return !fields.empty(); });
 }
