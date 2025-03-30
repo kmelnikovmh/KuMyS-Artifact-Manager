@@ -7,40 +7,41 @@
 
 #include "HeavyJson.h"
 #include "LightJson.h"
-#include <folly/MPMCQueue.h>
-#include <cpprest/http_listener.h>
 #include <cpprest/http_client.h>
-
+#include <cpprest/http_listener.h>
+#include <folly/MPMCQueue.h>
 
 namespace main_server {
-class HttpServer {
-public:
-  friend class TestableHttpServer;
-  explicit HttpServer(const std::string &url,
-                      folly::MPMCQueue<LightJSON> &input_queue,
-                      folly::MPMCQueue<HeavyJSON> &output_queue);
-  ~HttpServer() = default;
+    class HttpServer {
+    public:
+        friend class TestableHttpServer;
+        explicit HttpServer(const std::string&           url,
+                            folly::MPMCQueue<LightJSON>& input_queue,
+                            folly::MPMCQueue<HeavyJSON>& output_queue);
+        ~HttpServer() = default;
 
-  void start();
-  void stop();
+        void start();
+        void stop();
+        void process_loop();
 
-  HttpServer(const HttpServer &) = delete;
-  HttpServer &operator=(const HttpServer &) = delete;
-  HttpServer(HttpServer &&) = delete;
-  HttpServer &operator=(HttpServer &&) = delete;
+        HttpServer(const HttpServer&)            = delete;
+        HttpServer& operator=(const HttpServer&) = delete;
+        HttpServer(HttpServer&&)                 = delete;
+        HttpServer& operator=(HttpServer&&)      = delete;
 
-  void handle_get_request(
-      const web::http::http_request &request); // check exist packages
-  void handle_post_request(
-      const web::http::http_request &request); // install packages(apt-install)
-  bool validate_light_json(const LightJSON &json);
+        // private:
+        void handle_get_request(const web::http::http_request& request);  // check exist packages
+        void handle_post_request(const web::http::http_request& request); // install packages(apt-install)
+        bool validate_light_json(const LightJSON& json);
 
-  void response_request();
+        void response_request(const HeavyJSON& heavyJson);
 
-  web::http::experimental::listener::http_listener listener;
-  folly::MPMCQueue<LightJSON> &input_queue_;
-  folly::MPMCQueue<HeavyJSON> &output_queue_;
-};
+        web::http::experimental::listener::http_listener listener;
+        folly::CPUThreadPoolExecutor                     executor_;
+        folly::MPMCQueue<LightJSON>&                     input_queue_;
+        folly::MPMCQueue<HeavyJSON>&                     output_queue_;
+        std::atomic<bool>                                is_running_{false};
+    };
 
 } // namespace main_server
 

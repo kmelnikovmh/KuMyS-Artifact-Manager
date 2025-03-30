@@ -2,11 +2,14 @@
 // Created by Kymus-team on 2/22/25.
 //
 
+// TODO
 #include "../include/HttpServer.h"
 #include <algorithm>
 #include <cpprest/details/basic_types.h>
+#include <cpprest/filestream.h>
 #include <cpprest/http_client.h>
 #include <cpprest/json.h>
+#include <functional>
 #include <utility>
 #include <vector>
 
@@ -21,9 +24,9 @@ main_server::HttpServer::HttpServer(const std::string&           url,
                                     folly::MPMCQueue<HeavyJSON>& output_queue)
     : listener(url)
     , input_queue_(input_queue)
-    , output_queue_(output_queue) {
+    , output_queue_(output_queue)
+    , executor_(std::thread::hardware_concurrency()) {
 
-    // TODO
     //   listener.support(methods::GET, [this](const http_request &httpRequest) {
     //   handle_get_request(httpRequest); });
     listener.support(methods::POST, [this](const http_request& httpRequest) { handle_post_request(httpRequest); });
@@ -32,6 +35,8 @@ main_server::HttpServer::HttpServer(const std::string&           url,
 void main_server::HttpServer::start() {
     try {
         listener.open().wait();
+        is_running_.store(true);
+        std::thread([this] { process_loop(); }).detach();
         std::cout << "HTTP Server started at: " << listener.uri().to_string() << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "Server start failed: " << e.what() << std::endl;
@@ -42,9 +47,17 @@ void main_server::HttpServer::stop() {
     listener.close().wait();
 }
 
+void main_server::HttpServer::process_loop() {
+    HeavyJSON package;
+    while (is_running_.load()) {
+        output_queue_.blockingRead(package);
+        executor_.add([this, package = std::move(package)]() mutable { response_request(package); });
+    }
+}
+
 // TODO
-// void main_server::HttpServer::handle_get_request(const web::http::http_request& request) {
-//}
+void main_server::HttpServer::handle_get_request(const web::http::http_request& request) {
+}
 
 void main_server::HttpServer::handle_post_request(const web::http::http_request& request) {
     request.extract_json().then([this, request](const pplx::task<json::value>& task) {
@@ -71,10 +84,8 @@ void main_server::HttpServer::handle_post_request(const web::http::http_request&
     });
 }
 
-void main_server::HttpServer::response_request() {
-    HeavyJSON heavyJson;
-    output_queue_.blockingRead(heavyJson);
-    http_client client(U("http://127.0.0.1:7000"));
+void main_server::HttpServer::response_request(const HeavyJSON& heavyJson) {
+    http_client client(U("http://172.17.0.1:7000"));
 
     json::value request_body;
     request_body[U("id")]           = json::value::string(heavyJson.id);
