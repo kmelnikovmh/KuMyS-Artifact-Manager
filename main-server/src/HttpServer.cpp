@@ -25,7 +25,7 @@ main_server::HttpServer::HttpServer(const std::string&           url,
     : listener(url)
     , input_queue_(input_queue)
     , output_queue_(output_queue)
-    , executor_(std::thread::hardware_concurrency()) {
+    , executor_(std::make_shared<folly::CPUThreadPoolExecutor>(std::thread::hardware_concurrency())) {
 
     //   listener.support(methods::GET, [this](const http_request &httpRequest) {
     //   handle_get_request(httpRequest); });
@@ -45,13 +45,17 @@ void main_server::HttpServer::start() {
 
 void main_server::HttpServer::stop() {
     listener.close().wait();
+    stopped_.store(true);
+    executor_->join();
 }
 
 void main_server::HttpServer::process_loop() {
     HeavyJSON package;
     while (is_running_.load()) {
         output_queue_.blockingRead(package);
-        executor_.add([this, package = std::move(package)]() mutable { response_request(package); });
+        folly::coro::co_invoke([this, pkg = std::move(package)] { return response_request(std::move(pkg)); })
+            .scheduleOn(executor_.get())
+            .start();
     }
 }
 

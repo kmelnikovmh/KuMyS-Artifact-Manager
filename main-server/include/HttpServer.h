@@ -7,9 +7,10 @@
 
 #include "HeavyJson.h"
 #include "LightJson.h"
+#include <folly/executors/CPUThreadPoolExecutor.h>
+#include <folly/MPMCQueue.h>
 #include <cpprest/http_client.h>
 #include <cpprest/http_listener.h>
-#include <folly/MPMCQueue.h>
 
 namespace main_server {
     class HttpServer {
@@ -37,7 +38,7 @@ namespace main_server {
         void response_request(const HeavyJSON& heavyJson);
 
         web::http::experimental::listener::http_listener listener;
-        folly::CPUThreadPoolExecutor                     executor_;
+        std::shared_ptr<folly::CPUThreadPoolExecutor>    executor_;
         folly::MPMCQueue<LightJSON>&                     input_queue_;
         folly::MPMCQueue<HeavyJSON>&                     output_queue_;
         std::atomic<bool>                                is_running_{false};

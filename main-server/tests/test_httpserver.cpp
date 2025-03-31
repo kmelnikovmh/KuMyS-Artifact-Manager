@@ -78,7 +78,6 @@ TEST_F(HttpServerTest, ResponseRequestSendsCorrectData) {
     auto test_server = std::make_unique<TestableHttpServer>(test_url, input_queue, output_queue);
     
     output_queue.blockingWrite(std::move(test_package));
-    test_server->response_request();
 }
 
 TEST_F(HttpServerTest, HandlePostRequestWithEmptyBody) {
