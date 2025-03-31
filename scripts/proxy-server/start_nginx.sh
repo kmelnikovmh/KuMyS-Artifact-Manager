@@ -1,8 +1,8 @@
 #!/bin/bash
 
-nginx_port=8000
-validate_module_port=5000
-buffer_listener_nginx_port=6000
+nginx_port=63380
+validate_module_port=63350
+buffer_listener_nginx_port=63360
 
 handle_error() {
     echo -e "\nError: $1" >&2

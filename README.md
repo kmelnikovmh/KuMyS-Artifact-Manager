@@ -27,19 +27,19 @@
     ```
 2) Запустить nginx. Остановить его можно дополнительным аргументом stop\
     **Важно**: перед повторным запуском необходимо остановить уже запущенный
-    ```
+    ```bash
     ./scripts/proxy-server/start_nginx.sh
     ```
-    ```
+    ```bash
     ./scripts/proxy-server/start_nginx.sh stop
     ```
 3) В отдельном терминале запустить модуль валидации запросов:
-    ```
+    ```bash
     ./scripts/proxy-server/start_validate_module.sh
     ```
 4) В отдельном терминале запустить буффер между nginx и main-server'ом, указав в аргументах ip и port main-server'а:
-    ```
-    ./scripts/proxy-server/start_buffer.sh ... ...
+    ```bash
+    ./scripts/proxy-server/start_buffer.sh <ip> <port>
     ```
 
 В данной инструкции не отражена возможность изменить порты модулей, как и возможность запустить модули на разных машинах. Todo
@@ -47,14 +47,14 @@
 Краткая схема того, как связаны модули на дефолтных портах:
 ```c++
 // Ports:
-// client <-> (8000) nginx <-> (5000) validate_module
-//                         <-> (6000) buffer (7000) <-> (ip, port) main-server 
+// client <-> (63380) nginx <-> (63350) validate_module
+//                          <-> (63360) buffer (63370) <-> (ip, port) main-server 
 ```
 
 ### Client
 Изменить список репозиториев apt get, запустив скрипт `apt_config.sh`, указав ip адрес и порт, на котором развернут nginx сервер
 ```bash
-./scripts/apt_config.sh ip port
+./scripts/apt_config.sh <ip> <port>
 ```
 
 ##

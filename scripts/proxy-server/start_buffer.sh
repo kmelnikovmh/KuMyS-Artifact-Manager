@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Не изменять, ибо надо будет поменять и в nginx
-buffer_listener_nginx_port=6000
-buffer_listener_main_port=7000
+buffer_listener_nginx_port=63360
+buffer_listener_main_port=63370
 
 handle_error() {
     echo -e "\nError: $1" >&2
@@ -50,4 +50,6 @@ get_current_ip() {
 current_ip=$(get_current_ip) || exit 1
 
 # Запуск
-./buffer "${buffer_listener_nginx_port}" "${main_server_ip}" "${main_server_port}" "${buffer_listener_main_port}" "${current_ip}"
+if ! ./buffer "${buffer_listener_nginx_port}" "${main_server_ip}" "${main_server_port}" "${buffer_listener_main_port}" "${current_ip}"; then
+    handle_error "Failed to start validation module"
+fi

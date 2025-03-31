@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  # ...
+  # ... Код других приложений
+
+  proxy:
+    build: /proxy-server/
+    container_name: proxy
+    volumes:
+      - ./proxy-server:/proxy
+    ports:
+      - "63380:63380" # client -> nginx
+      - "63370:63370" # buffer <- main_server
+    networks:
+      - app-network
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge

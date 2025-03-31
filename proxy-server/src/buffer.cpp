@@ -9,6 +9,7 @@
 #include <mutex>
 #include <unordered_map>
 #include <vector>
+#include <chrono>
 
 #define DEBUG_MODE_BUFFER_
 #ifdef DEBUG_MODE_BUFFER_
@@ -21,28 +22,37 @@ namespace kymus_proxy_server {
 class PromiseAtomicMap {
 private:
     mutable std::mutex m_map_mtx;
-    std::unordered_map<std::string, std::promise<std::vector<uint8_t>>> m_map;
+    std::unordered_map<uint64_t, std::promise<std::pair<std::vector<uint8_t>, web::json::object>>> m_map;
 
 public:
-    std::future<std::vector<uint8_t>> create_and_return_future(std::string original_id_client) {
+    std::future<std::pair<std::vector<uint8_t>, web::json::object>> create_and_return_future(uint64_t original_id_client) {
         std::unique_lock l(m_map_mtx);
-        std::promise<std::vector<uint8_t>> req_promise;
-        std::future<std::vector<uint8_t>> req_future = req_promise.get_future();
+        std::promise<std::pair<std::vector<uint8_t>, web::json::object>> req_promise;
+        std::future<std::pair<std::vector<uint8_t>, web::json::object>> req_future = req_promise.get_future();
         m_map.emplace(original_id_client, std::move(req_promise));
-        l.unlock();
         return std::move(req_future);
     }
 
-    void set_future(const std::string &original_id_client, std::vector<uint8_t> content) {
+    void set_future(uint64_t original_id_client, std::vector<uint8_t> content, web::json::object json_headers) {
         std::unique_lock l(m_map_mtx);
         auto it_m_map = m_map.find(original_id_client);
-        it_m_map->second.set_value(content);
+        it_m_map->second.set_value({content, json_headers});
     }
 
-    void erase_promise(const std::string &original_id_client) {
+    void erase_promise(uint64_t original_id_client) {
         std::unique_lock l(m_map_mtx);
         auto it_m_map = m_map.find(original_id_client);
         m_map.erase(it_m_map);
+    }
+
+    static uint64_t simple_hash(const std::string& client_ip) {
+        auto now = std::chrono::system_clock::now();
+        auto time_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            now.time_since_epoch()
+        ).count();
+        
+        std::hash<std::string> hasher;
+        return hasher(std::to_string(time_ns) + client_ip);
     }
 };
 
@@ -52,11 +62,15 @@ private:
 
 public:
     JsonSender(const std::string &uri) : m_sender(uri) {}
+    
+    void parsing_uri_and_set_header() {
+        
+    }
 
     // Настроить поля, данные
-    web::http::status_code json_send(const web::http::http_request& request) {
+    web::http::status_code json_send(const web::http::http_request& request, uint64_t original_id_client) {
         web::json::value json_object = web::json::value::object();
-        json_object[U("id")] = web::json::value::string(U(request.headers().find("X-Real-IP")->second));
+        json_object[U("id")] = web::json::value::number(original_id_client);
         json_object[U("request_type")] = web::json::value::string(U("install"));
         json_object[U("name")] = web::json::value::string(U(request.request_uri().to_string()));
         json_object[U("version")] = web::json::value::string(U("-"));
@@ -80,9 +94,14 @@ private:
         debug_cout_buffer_ << "-------------------------------- open request\n";
         debug_cout_buffer_ << request.to_string();
 
+        // Hashing
+        uint64_t original_id_client = PromiseAtomicMap::simple_hash(request.headers().find("X-Real-IP")->second);
+        std::cout << original_id_client << "\n\n";
+        std::future<std::pair<std::vector<uint8_t>, web::json::object>> req_future = m_map.create_and_return_future(original_id_client);
+
         // Send request
         JsonSender &m_json_sender = get_json_sender(main_server_uri);
-        web::http::status_code main_server_code = m_json_sender.json_send(request);
+        web::http::status_code main_server_code = m_json_sender.json_send(request, original_id_client);
         if (main_server_code == 400) {
             request.reply(web::http::status_codes::InternalError, "Invalid request from proxy-server to main-server\n");
             debug_cout_buffer_ << "Invalid request from proxy-server to main-server\n";
@@ -91,19 +110,21 @@ private:
         }
         
         // Waiting and send response
-        std::thread([&]() {
-            // Надо более сложную хэш функцию. Не поддерживает с одного ip несколько висячих запросов
-            std::string original_id_client = request.headers().find("X-Real-IP")->second;
-
-            std::future<std::vector<uint8_t>> req_future = m_map.create_and_return_future(original_id_client);
+        std::thread([&, req_future = std::move(req_future)]() mutable {
             debug_cout_buffer_ << ". waiting promise\n\n\n";
-            std::vector<uint8_t> content = req_future.get();
+            auto [content, json_headers] = req_future.get();
             
-            // Настроить заголовки
             m_map.erase_promise(original_id_client);
+
             web::http::http_response response(200);
-            response.headers().set_content_type("application/x-debian-package");
+            
+            // Заголовки
+            for (auto it : json_headers) {
+                response.headers().add(it.first, it.second.as_string());
+            }
+            // Бинарь, тело
             response.set_body(content);
+
             request.reply(response);
             debug_cout_buffer_ << "-------------------------------- close\n\n";
         }).detach();
@@ -140,14 +161,20 @@ private:
 
     // HEAD FUNCTION
     void handle_response(const web::http::http_request& request) {
-        debug_cout_buffer_ << request.to_string();
-        web::json::value json = request.extract_json().get();
-        const std::string original_id_client = json["id"].as_string();
-        // Разобраться с кодировкой бинарей из json
-        // json["content"].as_string()  -->  std::vector<uint8_t> content
-        std::vector<uint8_t> content = {0, 1, 2, 3, 4, 5};
+        debug_cout_buffer_ << request.to_string();          // Фигня из-за body, работает так себе
 
-        m_map.set_future(original_id_client, content);
+        web::json::value json = request.extract_json().get();
+
+        utility::string_t id_client_t = request.headers().find("id")->second;
+        std::string id_client_std = utility::conversions::to_utf8string(id_client_t);
+        uint64_t id_client_uint64 = std::stoull(id_client_std);
+
+        web::json::object json_headers = json["headers"].as_object();
+
+        std::string content_str = json["content"].as_string();
+        std::vector<uint8_t> content = utility::conversions::from_base64(content_str);
+
+        m_map.set_future(id_client_uint64, content, json_headers);
         debug_cout_buffer_ << ". set future\n";
     }
 public:

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Не изменять, ибо надо будет поменять и в nginx
-validate_module_port=5000
+validate_module_port=63350
 
 handle_error() {
     echo -e "\nError: $1" >&2
