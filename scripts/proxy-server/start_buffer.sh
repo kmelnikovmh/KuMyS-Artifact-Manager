@@ -10,7 +10,7 @@ handle_error() {
 }
 
 # Переходим в папку проекта
-cd proxy-server || handle_error "Failed to cd to proxy-server"
+cd proxy-server/build || handle_error "Failed to cd to proxy-server"
 
 # Проверяем корректность аргументов
 main_server_ip=$1

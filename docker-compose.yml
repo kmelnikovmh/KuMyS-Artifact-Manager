@@ -8,8 +8,9 @@ services:
     build: proxy-server/
     container_name: proxy
     image: kumys-proxy
-    volumes:
-      - ./proxy-server:/proxy
+    # Надо будет после merge раскоментить и из dockerfile убрать git clone kumys
+    #volumes:             
+    #  - .:/kumys
     ports:
       - "63380:63380" # client -> nginx
       - "63370:63370" # buffer <- main_server

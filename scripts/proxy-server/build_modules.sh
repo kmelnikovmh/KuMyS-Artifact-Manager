@@ -6,10 +6,10 @@ handle_error() {
 }
 
 # Переходим в папку проекта
-cd proxy-server || handle_error "Failed to cd to proxy-server"
+cd proxy-server && mkdir build && cd build || handle_error "Failed to cd to proxy-server/build"
 
 # Запуск
-if ! cmake ./; then
+if ! cmake ..; then
     handle_error "Failed to build"
 fi
 if ! make; then
