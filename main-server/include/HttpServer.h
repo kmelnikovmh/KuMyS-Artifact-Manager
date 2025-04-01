@@ -8,6 +8,7 @@
 #include "HeavyJson.h"
 #include "LightJson.h"
 #include <folly/executors/CPUThreadPoolExecutor.h>
+#include <folly/experimental/coro/Task.h>
 #include <folly/MPMCQueue.h>
 #include <cpprest/http_client.h>
 #include <cpprest/http_listener.h>
@@ -35,7 +36,7 @@ namespace main_server {
         void handle_post_request(const web::http::http_request& request); // install packages(apt-install)
         bool validate_light_json(const LightJSON& json);
 
-        void response_request(const HeavyJSON& heavyJson);
+        folly::coro::Task<void> response_request(const HeavyJSON& heavyJson);
 
         web::http::experimental::listener::http_listener listener;
         std::shared_ptr<folly::CPUThreadPoolExecutor>    executor_;

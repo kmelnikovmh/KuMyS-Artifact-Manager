@@ -45,7 +45,7 @@ void main_server::HttpServer::start() {
 
 void main_server::HttpServer::stop() {
     listener.close().wait();
-    stopped_.store(true);
+    is_running_.store(false);
     executor_->join();
 }
 
@@ -88,7 +88,7 @@ void main_server::HttpServer::handle_post_request(const web::http::http_request&
     });
 }
 
-void main_server::HttpServer::response_request(const HeavyJSON& heavyJson) {
+folly::coro::Task<void> main_server::HttpServer::response_request(const main_server::HeavyJSON& heavyJson) {
     http_client client(U("http://172.17.0.1:7000"));
 
     json::value request_body;
