@@ -20,10 +20,10 @@ include_directories(${OPENSSL_INCLUDE_DIR})
 # include_directories(${FOLLY_INCLUDE_DIR})
 
 
-add_executable(validate_module src/validate_request_module.cpp)
+add_executable(validate_module src/validate_request_module.cpp src/main_validate_request_module.cpp)
 target_link_libraries(validate_module ${FASTCGIPP_LIBRARY})
 
-add_executable(buffer src/buffer.cpp)
+add_executable(buffer src/buffer.cpp src/main_buffer.cpp)
 target_compile_options(buffer
     PRIVATE  "-pthread"  # Thread safety
 )

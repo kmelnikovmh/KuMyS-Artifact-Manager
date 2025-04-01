@@ -6,7 +6,7 @@ handle_error() {
 }
 
 # Переходим в папку проекта
-cd proxy-server && mkdir build && cd build || handle_error "Failed to cd to proxy-server/build"
+cd proxy-server && mkdir -p build &&  cd build || handle_error "Failed to cd to proxy-server/build"
 
 # Запуск
 if ! cmake ..; then
