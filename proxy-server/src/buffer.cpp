@@ -63,19 +63,74 @@ private:
 public:
     JsonSender(const std::string &uri) : m_sender(uri) {}
     
-    void parsing_uri_and_set_header() {
-        
+    void parsing_uri_and_set_json(web::http::uri uri, web::json::value &json_object) {
+        std::string uri_str = uri.to_string();
+        debug_cout_buffer_ << uri_str << "\n";
+
+        size_t first_slash = uri_str.find('/');
+        size_t second_slash = uri_str.find('/', first_slash + 1);
+        if (first_slash != std::string::npos && second_slash != std::string::npos) {
+            std::string repo = uri_str.substr(first_slash + 1, second_slash - first_slash - 1);
+            debug_cout_buffer_ << repo << "\n";
+            json_object[U("repo")] = web::json::value::string(repo);
+        } else {
+            // Обработать неверный путь
+        }
+
+        size_t last_slash = uri_str.rfind('/');
+        if (last_slash != std::string::npos && second_slash < last_slash) {
+            std::string path = uri_str.substr(second_slash + 1, last_slash - second_slash - 1);
+            debug_cout_buffer_ << path << "\n";
+            json_object[U("path")] = web::json::value::string("path/to/package");
+        } else {
+            // Обработать неверный путь
+        }
+
+        size_t dot_pos = uri_str.rfind('.');
+        if (dot_pos == std::string::npos) {
+            json_object[U("request_type")] = web::json::value::string("update");
+            std::string name = uri_str.substr(last_slash + 1);
+            debug_cout_buffer_ << name << "\n";
+            json_object[U("name")] = web::json::value::string(name);
+            json_object[U("version")] = web::json::value::string("-");
+            json_object[U("architecture")] = web::json::value::string("-");
+        } else {
+            json_object[U("request_type")] = web::json::value::string("install");
+
+            size_t first_underscore = uri_str.find('_', last_slash + 1);
+            if (first_underscore != std::string::npos) {
+                std::string name = uri_str.substr(last_slash + 1, first_underscore - last_slash - 1);
+                debug_cout_buffer_ << name << "\n";
+                json_object[U("name")] = web::json::value::string(name);
+            } else {
+                // Обработать неверный путь
+            }
+
+            size_t last_underscore = uri_str.rfind('_');
+            if (last_underscore != std::string::npos && first_underscore < last_underscore) {
+                std::string version = uri_str.substr(first_underscore + 1, last_underscore - first_underscore - 1);
+                debug_cout_buffer_ << version << "\n";
+                json_object[U("version")] = web::json::value::string(version);
+            } else {
+                // Обработать неверный путь
+            }
+
+            if (last_underscore < dot_pos) {
+                std::string architecture = uri_str.substr(last_underscore + 1, dot_pos - last_underscore - 1);
+                debug_cout_buffer_ << architecture << "\n";
+                json_object[U("architecture")] = web::json::value::string(architecture);
+            } else {
+                // Обработать неверный путь
+            }
+        }
     }
 
-    // Настроить поля, данные
     web::http::status_code json_send(const web::http::http_request& request, uint64_t original_id_client) {
         web::json::value json_object = web::json::value::object();
-        json_object[U("id")] = web::json::value::number(original_id_client);
-        json_object[U("request_type")] = web::json::value::string(U("install"));
-        json_object[U("name")] = web::json::value::string(U(request.request_uri().to_string()));
-        json_object[U("version")] = web::json::value::string(U("-"));
-        json_object[U("architecture")] = web::json::value::string(U("-"));
-        json_object[U("check_sum")] = web::json::value::string(U("-"));
+        json_object[U("id")] = web::json::value::string(std::to_string(original_id_client));        // Сделать чиселкой
+        json_object[U("check_sum")] = web::json::value::string("sha256:todo");
+
+        parsing_uri_and_set_json(request.relative_uri(), json_object);
 
         web::http::http_response response = m_sender.request(web::http::methods::POST, U(""), json_object).get();
         return response.status_code();
@@ -217,8 +272,8 @@ int main (int argc, char *argv[]) {
     }
 
     PromiseAtomicMap promise_map;
-    NginxListener nginx("http://127.0.0.1:"+buffer_listener_nginx_port, "http://"+main_server_ip+":"+main_server_port, promise_map);
-    MainListener main("http://127.0.0.1:"+buffer_listener_main_port, promise_map);
+    NginxListener nginx("http://0.0.0.0:"+buffer_listener_nginx_port, "http://"+main_server_ip+":"+main_server_port, promise_map);
+    MainListener main("http://0.0.0.0:"+buffer_listener_main_port, promise_map);
     
     nginx.start();
     main.start();

@@ -9,6 +9,7 @@ RUN apt-get update && \
     nano \
     curl \
     telnet \
+    tcpdump \
     g++-12 \
     cmake \
     git \
@@ -40,7 +41,5 @@ RUN git clone https://github.com/eddic/fastcgipp.git fastcgi++ && \
     make && \
     sudo make install
 
-WORKDIR /
-RUN git clone https://github.com/kmelnikovmh/KuMyS-Artifact-Manager.git KuMyS
-
+WORKDIR /proxy
 CMD ["bash"]

@@ -6,16 +6,34 @@
 
 ## Руководство по эксплуатации
 ### Необходимые библиотеки: 
-* main-server: x
-* proxy-server: nginx/1.24.0, FastCGI++ by Eddie Carle, CppRestSDK, ...
+* common: CppRestSDK, Folly
+* main-server: ...
+* proxy-server: Openresty (nginx, lua), FastCGI++ by Eddie Carle
+<!-- Надо будет закрепить версии -->
 
 Протестировано на Docker Ubuntu 24.04
 
 ### Docker
-... Ждем кубернет
+...
+
+1) Собрать все контейнеры:
+    ```bash
+    docker-compose up -d --build
+    ```
+2) Зайти в соответствующий контейнер: app, proxy
+    ```bash
+    docker exec -it <name> bash
+    ```
 
 ### Main-server
-...
+1) Собрать проект:
+    ```bash
+    cmake .. && make
+    ```
+2) Запустить сервер:
+    ```bash
+    ./kumys_server
+    ```
 
 ### Proxy-server
 

@@ -19,9 +19,10 @@ if [ $# -ne 2 ]; then
     handle_error "Usage: $0 <IPv4> <Port>"
 fi
 ip_regex='^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
-if [[ ! $1 =~ $ip_regex ]]; then
-    handle_error "Invalid IPv4 format: $1"
-fi
+# Поправить то, что могут определенные названия приложений поступать, а не только ip
+#if [[ ! $1 =~ $ip_regex ]]; then
+#    handle_error "Invalid IPv4 format: $1"
+#fi
 if ! [[ $2 =~ ^[0-9]+$ ]] || [ $2 -lt 1 ] || [ $2 -gt 65535 ]; then
     handle_error "Invalid port number: $2 (must be 1-65535)"
 fi

@@ -59,7 +59,7 @@ int main(int argc, char* argv[]) {
     }
     Fastcgipp::Manager<Proxy> manager;
     manager.setupSignals();
-    if (manager.listen("127.0.0.1", argv[1]) == false) {
+    if (manager.listen("0.0.0.0", argv[1]) == false) {
         return 1;
     }
     manager.start();

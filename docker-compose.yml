@@ -5,8 +5,9 @@ services:
   # ... Код других приложений
 
   proxy:
-    build: /proxy-server/
+    build: proxy-server/
     container_name: proxy
+    image: kumys-proxy
     volumes:
       - ./proxy-server:/proxy
     ports:
