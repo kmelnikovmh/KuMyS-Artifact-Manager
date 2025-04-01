@@ -32,7 +32,7 @@ int main() {
         folly::MPMCQueue<main_server::HeavyJSON> output_queue(QUEUE_CAPACITY);
 
         // start http-server
-        main_server::HttpServer server("http://127.0.0.1:8081", input_queue, output_queue);
+        main_server::HttpServer server("http://0.0.0.0:8081", input_queue, output_queue);
         server.start();
         std::cout << "Server start" << std::endl;
 

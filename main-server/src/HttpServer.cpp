@@ -89,7 +89,7 @@ void main_server::HttpServer::handle_post_request(const web::http::http_request&
 }
 
 folly::coro::Task<void> main_server::HttpServer::response_request(const main_server::HeavyJSON& heavyJson) {
-    http_client client(U("http://172.17.0.1:7000"));
+    http_client client(U("http://proxy:63370"));
 
     json::value request_body;
     request_body[U("id")]           = json::value::string(heavyJson.id);
