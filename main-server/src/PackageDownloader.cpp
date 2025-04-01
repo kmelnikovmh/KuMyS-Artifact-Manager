@@ -131,7 +131,9 @@ std::vector<std::string> PackageDownloader::generate_urls(const LightJSON& packa
 
         builder.append_path(U(package.path))
             .append_path(U(package.name + "_" + package.version + "_" + package.architecture + ".deb"));
-
+        if (downloaded_package.request_type != "update") {
+            builder.append_path(U("_" + package.version + "_" + package.architecture + ".deb"));
+        }
         urls.push_back(builder.to_string());
     }
     return urls;
