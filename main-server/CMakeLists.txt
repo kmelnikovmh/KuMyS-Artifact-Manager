@@ -14,6 +14,8 @@ set(BSONCXX_LIBRARY_DIR "/usr/local/lib")
 include_directories(
         ${MONGOCXX_INCLUDE_DIR}
         ${BSONCXX_INCLUDE_DIR}
+        include
+        ${PROJECT_SOURCE_DIR}/../common-include
 )
 
 #Add path to lib
@@ -25,10 +27,10 @@ link_directories(
 # find dependencies
 find_package(cpprestsdk REQUIRED)
 find_package(folly REQUIRED)
+find_package(GFlags REQUIRED)
 
 
 add_library(kumys_lib STATIC
-        src/main.cpp
         src/HttpServer.cpp
         src/RequestHandler.cpp
         src/DatabaseManager.cpp

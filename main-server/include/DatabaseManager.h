@@ -4,26 +4,37 @@
 
 #ifndef KUMYS_ARTIFACT_MANAGER_DATABESMANGER_H
 #define KUMYS_ARTIFACT_MANAGER_DATABESMANGER_H
-#include <string>
-#include <mongocxx/pool.hpp>
-#include <folly/futures/Future.h>
+
 #include "HeavyJson.h"
+#include <mongocxx/pool.hpp>
+#include <string>
+#include <folly/experimental/coro/Task.h>
 
-namespace main_server{
+namespace main_server {
 
-class DatabaseManger {
-public:
-    static void init(const std::string& connection_uri);
+    class DatabaseManager {
+    public:
+        explicit DatabaseManager(const std::string &connection_uri);
+        static folly::coro::Task<bool> check_package(std::string &package_id);
+
+        static folly::coro::Task<HeavyJSON> fetch_package(std::string &package_id);
+
+        static folly::coro::Task<void> store_package(const HeavyJSON &package);
+
+        static std::unique_ptr<mongocxx::pool> connection_pool_;
+        static std::unique_ptr<mongocxx::gridfs::bucket> gridfs_bucket_;
+        static std::atomic<bool> initialized_;
+        static std::mutex init_mutex_;
+
+        static inline const std::string DB_NAME = "packages_db";
+        static inline const std::string COLLECTION_NAME = "packages";
+
+        static folly::coro::Task<mongocxx::pool::entry> get_connection_async();
+        static constexpr const char* BUCKET_NAME = "fs";
 
 
-    static folly::Future<bool> check_package_exists(const std::string& package_id);
-    static folly::Future<HeavyJSON> fetch_package(const std::string& package_id);
-    static folly::Future<void> store_package(const HeavyJSON& package);
-private:
-    static inline std::unique_ptr<mongocxx::pool> connection_pool;
 
+    };
+} // namespace main_server
 
-};
-}// namespace main_server
-
-#endif //KUMYS_ARTIFACT_MANAGER_DATABESMANGER_H
+#endif // KUMYS_ARTIFACT_MANAGER_DATABESMANGER_H

@@ -7,14 +7,16 @@
 #include <string>
 #include <vector>
 namespace main_server {
-    struct LightJSON {
-        std::string id;
-        std::string request_type;
-        std::string name;
-        std::string version;
-        std::string architecture;
-        std::string check_sum;
-    };
+struct LightJSON {
+  std::string id;
+  std::string request_type;
+  std::string name;
+  std::string version;
+  std::string architecture;
+  std::string check_sum;
+  std::string repo;
+  std::string path;
+};
 
 } // namespace main_server
 #endif // KUMYS_ARTIFACT_MANAGER_LIGHTJSON_H
