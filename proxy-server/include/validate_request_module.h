@@ -1,7 +1,7 @@
 #ifndef PROXY_VALIDATE_MODULE_
 #define PROXY_VALIDATE_MODULE_
 
-#include <LightJson.hpp>                        // todo
+// #include <LightJson.h>                        // todo
 #include <fastcgi++/request.hpp>
 #include <fastcgi++/manager.hpp>
 #include <iostream>
