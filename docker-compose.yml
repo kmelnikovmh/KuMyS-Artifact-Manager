@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+
   mongodb:
     image: mongo:8.0
     container_name: mongodb
@@ -27,7 +28,9 @@ services:
   app:
     build: main-server/
     container_name: app
+    image: kumys-app
     volumes:
+      - ./common-include:/common-include    # Не оч красиво, ибо все в корне
       - ./main-server:/app
     ports:
       - "8080:8080"
@@ -36,6 +39,22 @@ services:
       - mongodb
     environment:
       MONGODB_URI: "mongodb://root:123@mongodb:27017"
+    networks:
+      - app-network
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+  proxy:
+    build: proxy-server/
+    container_name: proxy
+    image: kumys-proxy
+    volumes:             
+      - ./proxy-server:/kumys/proxy-server
+      - ./scripts:/kumys/scripts
+    ports:
+      - "63380:63380" # client -> nginx
+      - "63370:63370" # buffer <- main_server
     networks:
       - app-network
     stdin_open: true
