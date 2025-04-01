@@ -17,7 +17,7 @@
 namespace main_server {
 
     using send_request_handler = 
-        std::function<folly::coro::Task<web::http::http_response>(
+        std::function<web::http::http_response(
             const std::string&, 
             const web::http::method&)>;
 
@@ -37,7 +37,7 @@ namespace main_server {
     bool is_running() const { return is_running_.load(); }
         PackageDownloader(folly::MPMCQueue<LightJSON>& download_queue,
                           folly::MPMCQueue<HeavyJSON>& output_queue,
-                          std::string                  repos_config_file = "repos.list");
+                          std::string                  repos_config_file = "../repos.list");
 
         void start();
         void stop();

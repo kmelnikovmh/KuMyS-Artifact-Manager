@@ -1,3 +1,68 @@
+#ifndef KUMYS_ARTIFACT_MANAGER_PACKAGEDOWNLOADER_H
+#define KUMYS_ARTIFACT_MANAGER_PACKAGEDOWNLOADER_H
+#include "HeavyJson.h"
+#include "LightJson.h"
+#include <folly/MPMCQueue.h>
+#include <folly/executors/CPUThreadPoolExecutor.h>
+#include <folly/experimental/coro/Task.h>
+#include <folly/futures/Future.h>
+#include <cpprest/http_client.h>
+#include <string>
+#include <thread>
+
+namespace main_server {
+
+    using send_request_handler = 
+        std::function<web::http::http_response(
+            const std::string&, 
+            const web::http::method&)>;
+
+    using store_to_database_handler = 
+        std::function<folly::coro::Task<void>(const HeavyJSON&)>;
+
+    // temporary; TODO
+    struct Repo {
+        std::string              name;
+        std::string              subnet_url;
+        std::vector<std::string> proxy_urls;
+    };
+
+
+    class PackageDownloader {
+    public:
+    bool is_running() const { return is_running_.load(); }
+        PackageDownloader(folly::MPMCQueue<LightJSON>& download_queue,
+                          folly::MPMCQueue<HeavyJSON>& output_queue,
+                          std::string                  repos_config_file = "../repos.list");
+
+        void start();
+        void stop();
+
+        void process_loop();
+        folly::coro::Task<void> download_package(LightJSON package);
+
+        std::vector<std::string>             generate_urls(const LightJSON& package);
+        void                                         update_repos();
+        const std::unordered_map<std::string, Repo>& get_allowed_repos() const;
+
+        store_to_database_handler store_to_database_;
+        send_request_handler       send_request_;
+
+    // private:
+        folly::MPMCQueue<LightJSON>& download_queue_;
+        folly::MPMCQueue<HeavyJSON>& output_queue_;
+        std::shared_ptr<folly::CPUThreadPoolExecutor> executor_;
+        std::atomic<bool>            is_running_{false};
+
+        std::string                           repos_config_file_;
+        std::unordered_map<std::string, Repo> allowed_repositories_;
+    };
+
+} // namespace main_server
+
+#endif // KUMYS_ARTIFACT_MANAGER_PACKAGEDOWNLOADER_H
+
+
 //
 // Created by Kymus-team on 2/22/25.
 //
@@ -28,15 +93,12 @@ PackageDownloader::PackageDownloader(folly::MPMCQueue<LightJSON>& download_queue
     , output_queue_(output_queue)
     , executor_(std::make_shared<folly::CPUThreadPoolExecutor>(std::thread::hardware_concurrency()))
     , repos_config_file_(std::move(repos_config_file))
-    , store_to_database_([](const HeavyJSON&) -> folly::coro::Task<void> {
-        DatabaseManager::store_package(package);
-        co_return;
+    , store_to_database_([](const HeavyJSON& package) -> folly::coro::Task<void> {
+        return DatabaseManager::store_package(package);
     })
-    , send_request_([](const std::string& url, const web::http::http_request& method) -> folly::coro::Task<web::http::http_response> {
+    , send_request_([](const std::string& url, const web::http::http_request& method) {
         web::http::client::http_client client(U(url));
-        auto task = client.request(method);
-        co_await folly::coro::co_reschedule_on_current_executor;
-        co_return task.get();
+        return client.request(method).get();
     }) {
 }
 
@@ -72,7 +134,7 @@ folly::coro::Task<void> PackageDownloader::download_package(LightJSON package) {
     for (size_t i = 0; i < urls.size() && !is_downloaded; ++i) {
         const auto& url = urls[i];
         try {
-            auto response = co_await send_request_(url, web::http::methods::GET);
+            auto response = send_request_(url, web::http::methods::GET);
             
             if (response.status_code() != web::http::status_codes::OK) {
                 throw std::runtime_error("HTTP error: " + std::to_string(response.status_code()));
@@ -108,7 +170,6 @@ folly::coro::Task<void> PackageDownloader::download_package(LightJSON package) {
     }
 
     if (!is_downloaded) {
-        output_queue_.blockingWrite(HeavyJSON{});
         std::cerr << "Failed to download package " << package.name << std::endl;
     }
 }
@@ -118,7 +179,6 @@ std::vector<std::string> PackageDownloader::generate_urls(const LightJSON& packa
         std::cerr << "Repo " << package.repo << " is not listed" << std::endl;
         return {};
     }
-
     const Repo&              repo = allowed_repositories_[package.repo];
     std::vector<std::string> urls;
     for (const auto& repo_proxy_url : repo.proxy_urls) {
@@ -141,6 +201,7 @@ std::vector<std::string> PackageDownloader::generate_urls(const LightJSON& packa
     }
     return urls;
 }
+
 void PackageDownloader::update_repos() {
     allowed_repositories_.clear();
     std::ifstream file(repos_config_file_);
