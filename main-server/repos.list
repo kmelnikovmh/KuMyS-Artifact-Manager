@@ -1,0 +1,5 @@
+# format:
+# repo_name url_to_external_1 url_to_external_2
+# single repo = single line
+
+ubuntu_repo archive.ubuntu.com/ubuntu
