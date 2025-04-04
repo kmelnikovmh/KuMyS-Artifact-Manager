@@ -58,6 +58,17 @@ void PackageDownloader::process_loop() {
     }
 }
 
+void print(main_server::HeavyJSON json) {
+    std::cout << "\tINSTALLED:\nID: " << json.id << "\n Request Type: " << json.request_type << "\n Name: " << json.name
+                  << "\n Version: " << json.version << "\n Architecture: " << json.architecture << "\n Check Sum: "
+                  << json.check_sum << "\n Repo: " << json.repo << "\n Path: " << json.path << "\n Size: " << json.file_size
+                  << "\n Headers: ";
+    for (const auto& header : json.headers) {
+        std::cout << header.first << ": " << header.second << "\n ";
+    }
+    std::cout << std::endl;
+}
+
 folly::coro::Task<void> PackageDownloader::download_package(LightJSON package) {
     const auto urls = generate_urls(package);
     if (urls.empty()) {
@@ -68,13 +79,13 @@ folly::coro::Task<void> PackageDownloader::download_package(LightJSON package) {
     bool is_downloaded = false;
     for (size_t i = 0; i < urls.size() && !is_downloaded; ++i) {
         const auto& url = urls[i];
+        std::cout << url << std::endl;
         try {
             auto response = send_request_(url, web::http::methods::GET);
             
             if (response.status_code() != web::http::status_codes::OK) {
                 throw std::runtime_error("HTTP error: " + std::to_string(response.status_code()));
             }
-
             auto data = response.extract_vector().get();
             HeavyJSON downloaded_package{
                 package.id,
@@ -92,13 +103,15 @@ folly::coro::Task<void> PackageDownloader::download_package(LightJSON package) {
             for (auto&& header : response.headers()) {
                 downloaded_package.headers[header.first] = header.second;
             }
-
+            HeavyJSON stored_package(downloaded_package);
+            std::cout << "ENQUEUE" << std::endl;
+            output_queue_.blockingWrite(std::move(stored_package));
+            std::cout << "ENQUEUED" << std::endl;
+            is_downloaded = true;
             if (downloaded_package.request_type != "update") {
+                print(downloaded_package);
                 co_await store_to_database_(downloaded_package);
             }
-
-            output_queue_.blockingWrite(std::move(downloaded_package));
-            is_downloaded = true;
         } catch (const std::exception& e) {
             std::cerr << "Failed to download from " << url << ": " << e.what() << std::endl;
         }
@@ -128,12 +141,13 @@ std::vector<std::string> PackageDownloader::generate_urls(const LightJSON& packa
         } else {
             builder.set_scheme(U("http")).set_host(U(repo_proxy_url));
         }
-
-        builder.append_path(U(package.path))
-            .append_path(U(package.name + "_" + package.version + "_" + package.architecture + ".deb"));
-        if (downloaded_package.request_type != "update") {
-            builder.append_path(U("_" + package.version + "_" + package.architecture + ".deb"));
+        std::cout << "name: " << package.name << std::endl;
+        std::string file_name = package.name;
+        builder.append_path(U(package.path));
+        if (package.request_type != "update") {
+            file_name += ("_" + package.version + "_" + package.architecture + ".deb");
         }
+        builder.append_path(U(file_name));
         urls.push_back(builder.to_string());
     }
     return urls;
