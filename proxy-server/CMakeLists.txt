@@ -8,7 +8,7 @@ include_directories(${PROJECT_SOURCE_DIR}/../common-include)
 include_directories(${PROJECT_SOURCE_DIR}/include)
 # FastCGI
 set(FASTCGIPP_INCLUDE_DIR "/usr/include")
-set(FASTCGIPP_LIBRARY "/usr/lib/aarch64-linux-gnu/libfastcgipp.so")
+set(FASTCGIPP_LIBRARY "/usr/lib/x86_64-linux-gnu/libfastcgipp.so")
 include_directories(${FASTCGIPP_INCLUDE_DIR})
 # CppRestSDK
 find_package(OpenSSL REQUIRED)

@@ -44,31 +44,31 @@ main_server::DatabaseManager::DatabaseManager(const std::string& connection_uri)
     }
 }
 
-folly::coro::Task<bool> main_server::DatabaseManager::check_package(std::string& package_id) {
+folly::coro::Task<bool> main_server::DatabaseManager::check_package(std::string package_name) {
     auto conn = co_await get_connection_async();
     try {
         auto collection = (*conn)[DB_NAME][COLLECTION_NAME];
-        co_return static_cast<bool>(collection.find_one(make_document(kvp("_id", package_id))));
+        co_return static_cast<bool>(collection.find_one(make_document(kvp("_id", package_name))));
     } catch (const std::exception& e) {
         std::cerr << "Check package error: " << e.what() << std::endl;
         co_return false;
     }
 }
 
-folly::coro::Task<main_server::HeavyJSON> main_server::DatabaseManager::fetch_package(std::string& package_id) {
+folly::coro::Task<main_server::HeavyJSON> main_server::DatabaseManager::fetch_package(std::string package_name) {
     auto      conn = co_await get_connection_async();
     HeavyJSON package;
 
     try {
         auto collection = (*conn)[DB_NAME][COLLECTION_NAME];
-        auto doc        = collection.find_one(make_document(kvp("_id", package_id)));
+        auto doc        = collection.find_one(make_document(kvp("_id", package_name)));
 
         if (!doc)
             throw std::runtime_error("Package not found");
 
         auto view = doc->view();
 
-        package.id           = std::string(view["_id"].get_string().value);
+        package.id           = static_cast<uint64_t>(view["file_size"].get_int64().value);
         package.request_type = std::string(view["request_type"].get_string().value);
         package.name         = std::string(view["name"].get_string().value);
         package.version      = std::string(view["version"].get_string().value);
@@ -118,14 +118,35 @@ folly::coro::Task<main_server::HeavyJSON> main_server::DatabaseManager::fetch_pa
     }
 }
 
+void main_server::DatabaseManager::clean() {
+    auto conn = folly::coro::blockingWait(
+        DatabaseManager::get_connection_async()
+    );
+    
+    // Clean collection
+    auto db = (*conn)[DatabaseManager::DB_NAME];
+    db[COLLECTION_NAME].delete_many({});
+
+    // Clean GridFS
+    auto bucket = db.gridfs_bucket(
+        mongocxx::options::gridfs::bucket{}.bucket_name("fs")
+    );
+    auto files = bucket.find({});
+    for (auto&& file : files) {
+        bucket.delete_file(file["_id"].get_value());
+    }
+    std::cout << "cleaned" << std::endl;
+}
+
 folly::coro::Task<void> main_server::DatabaseManager::store_package(const HeavyJSON& package) {
+    
     auto conn = co_await get_connection_async();
     try {
 
         mongocxx::options::gridfs::upload options{};
         options.metadata(make_document(kvp("version", package.version), kvp("architecture", package.architecture)));
 
-        auto uploader = gridfs_bucket_->open_upload_stream(package.id, // filename
+        auto uploader = gridfs_bucket_->open_upload_stream(package.name, // filename
                                                            options     // options
         );
 
@@ -151,7 +172,7 @@ folly::coro::Task<void> main_server::DatabaseManager::store_package(const HeavyJ
         }
 
         auto collection = (*conn)[DB_NAME][COLLECTION_NAME];
-        auto doc        = make_document(kvp("_id", package.id),
+        auto doc        = make_document(kvp("_id", package.name),
                                  kvp("request_type", package.request_type),
                                  kvp("name", package.name),
                                  kvp("version", package.version),
@@ -165,6 +186,7 @@ folly::coro::Task<void> main_server::DatabaseManager::store_package(const HeavyJ
                                  kvp("headers", headers_doc.extract()));
 
         collection.insert_one(doc.view());
+        std::cout << "kinda stored" << std::endl;
     } catch (const mongocxx::gridfs_exception& e) {
         std::cerr << "GridFS Error[" << e.code().value() << "]: " << e.what() << std::endl;
         throw;

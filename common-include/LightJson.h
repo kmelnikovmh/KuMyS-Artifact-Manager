@@ -6,9 +6,10 @@
 #define KUMYS_ARTIFACT_MANAGER_LIGHTJSON_H
 #include <string>
 #include <vector>
+#include <cstdint>
 namespace main_server {
 struct LightJSON {
-  std::string id;
+  uint64_t id;
   std::string request_type;
   std::string name;
   std::string version;

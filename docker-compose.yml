@@ -49,7 +49,8 @@ services:
     build: proxy-server/
     container_name: proxy
     image: kumys-proxy
-    volumes:             
+    volumes:
+      - ./common-include:/kumys/common-include             
       - ./proxy-server:/kumys/proxy-server
       - ./scripts:/kumys/scripts
     ports:
