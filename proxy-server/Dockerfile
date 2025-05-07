@@ -35,7 +35,7 @@ RUN wget -O - https://openresty.org/package/pubkey.gpg | gpg --dearmor -o /usr/s
 RUN apt-get update && \
     apt-get -y install openresty
 
-WORKDIR lib
+WORKDIR /lib
 RUN git clone https://github.com/eddic/fastcgipp.git fastcgi++ && \
     mkdir fastcgi++.build && \
     cd fastcgi++.build && \

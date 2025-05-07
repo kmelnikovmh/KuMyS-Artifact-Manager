@@ -15,10 +15,8 @@ nginx_ip="$1"
 nginx_port="$2"
 base_dir="/etc/apt"
 
-# Регулярка для проверки существующего IP:port в URI
 target_pattern="http://${nginx_ip}:${nginx_port}/"
 
-# Поиск файлов в директориях с "sources" в имени
 found_files=$(find "$base_dir" -type f -name "ubuntu.sources" -path "*sources*" 2>/dev/null)
 
 if [ -z "$found_files" ]; then
@@ -30,28 +28,21 @@ for source_file in $found_files; do
     cp -f "$source_file" "$backup_file"
     
     awk -v ip="$nginx_ip" -v port="$nginx_port" -v pattern="$target_pattern" '
-        # Пропускаем закомментированные строки
         /^[[:space:]]*#/ { print; next }
         
-        # Обрабатываем только незакомментированные URIs с http://
         $0 ~ /^[[:space:]]*URIs:[[:space:]]*http:\/\// {
-            # Проверяем, содержит ли URI целевой IP:port
             if ($0 ~ pattern) {
                 print $0
                 next
             }
             
-            # Закомментировать оригинал
             print "## " $0
             
-            # Извлечь URL
             split($0, parts, /[[:space:]]*URIs:[[:space:]]*/)
             url = parts[2]
             
-            # Удалить протокол
             sub(/^http:\/\//, "", url)
             
-            # Разделить хост и путь
             slash_pos = index(url, "/")
             if (slash_pos == 0) {
                 host = url
@@ -61,10 +52,30 @@ for source_file in $found_files; do
                 path = substr(url, slash_pos)
             }
             
-            # Собрать новый URL
-            new_url = "http://" ip ":" port path
+            split(host, domain_parts, /\./)
+            seg_suffix = domain_parts[1]
             
-            # Вывести новую строку
+            if (path == "" || path == "/") {
+                new_path = "/" seg_suffix
+            } else {
+                if (path ~ /^\//) {
+                    temp = substr(path, 2)  # Удалить ведущий /
+                    slash_pos = index(temp, "/")
+                    if (slash_pos == 0) {
+                        first_segment = temp
+                        rest = ""
+                    } else {
+                        first_segment = substr(temp, 1, slash_pos - 1)
+                        rest = substr(temp, slash_pos)
+                    }
+                    new_path = "/" first_segment "_" seg_suffix rest
+                } else {
+                    new_path = "/" seg_suffix
+                }
+            }
+            
+            new_url = "http://" ip ":" port new_path
+            
             print "URIs: " new_url
             next
         }
