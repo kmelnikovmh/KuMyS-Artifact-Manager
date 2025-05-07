@@ -30,7 +30,7 @@
 
     `0:56` - Теперь он устанавливает тот же пакет — за счёт кэширования загрузка занимает всего пару секунд (в 3 раза быстрее)
 
-[![](assets/demo.png)](https://github.com/kmelnikovmh/KuMyS-Artifact-Manager/tree/mvp-debug/assets/demo.mp4)
+[![](assets/demo.png)](https://www.dropbox.com/scl/fi/2afd5mwom28p318n69ovz/demo.mp4?rlkey=wkkburo0b646oe76vhmityzhe&st=akk66l2l&dl=04)
 
 ## Руководство по эксплуатации
 ### Необходимые библиотеки: 
