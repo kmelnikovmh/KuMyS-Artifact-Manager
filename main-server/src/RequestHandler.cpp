@@ -45,9 +45,10 @@ void main_server::RequestHandler::processLoop() {
 
 folly::coro::Task<void> main_server::RequestHandler::processPackage(main_server::LightJSON package) {
     try {
-        bool exist = co_await main_server::DatabaseManager::check_package(package.id);
+        bool exist = co_await main_server::DatabaseManager::check_package(package.name);
         if (exist) {
-            HeavyJSON heavyJSON = co_await main_server::DatabaseManager::fetch_package(package.id);
+            HeavyJSON heavyJSON = co_await main_server::DatabaseManager::fetch_package(package.name);
+            heavyJSON.id = package.id;
             output_queue_.blockingWrite(std::move(heavyJSON));
         } else {
             download_queue_.blockingWrite(std::move(package));
