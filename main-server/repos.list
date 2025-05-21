@@ -3,3 +3,5 @@
 # single repo = single line
 
 ubuntu_repo archive.ubuntu.com/ubuntu
+ubuntu_sec security.ubuntu.com/ubuntu
+ubuntu-ports ports.ubuntu.com/ubuntu-ports

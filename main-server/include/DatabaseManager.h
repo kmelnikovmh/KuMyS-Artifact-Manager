@@ -15,9 +15,9 @@ namespace main_server {
     class DatabaseManager {
     public:
         explicit DatabaseManager(const std::string &connection_uri);
-        static folly::coro::Task<bool> check_package(std::string &package_id);
-
-        static folly::coro::Task<HeavyJSON> fetch_package(std::string &package_id);
+        static folly::coro::Task<bool> check_package(std::string package_name);
+        void clean();
+        static folly::coro::Task<HeavyJSON> fetch_package(std::string package_name);
 
         static folly::coro::Task<void> store_package(const HeavyJSON &package);
 
