@@ -33,11 +33,11 @@
 [![](assets/demo.png)](https://www.dropbox.com/scl/fi/2afd5mwom28p318n69ovz/demo.mp4?rlkey=wkkburo0b646oe76vhmityzhe&st=akk66l2l&dl=04)
 
 ## Руководство по эксплуатации
-### Необходимые библиотеки: 
+### Используемые библиотеки: 
 * common: CppRestSDK, Folly (async), gtest
 * main-server: MongoDB, mongocxx
 * proxy-server: Openresty (nginx, lua), FastCGI++ by Eddie Carle
-<!-- Надо будет закрепить версии -->
+<!-- Надо будет закрепить версии. Надо будет переделать данные раздел в иконки -->
 
 Протестировано на Docker Ubuntu 24.04
 
