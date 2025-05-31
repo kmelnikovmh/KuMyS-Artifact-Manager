@@ -1,4 +1,4 @@
-#include "validate_request_module.h"
+#include "validate_request_module.hpp"
 
 #define DEBUG_MODE_VALIDATE_MODULE_
 #ifdef DEBUG_MODE_VALIDATE_MODULE_
@@ -16,9 +16,9 @@ bool Proxy::validate_request() {
     // todo
 
     if (validate) {
-        debug_cout_valmod << "Request is OK\n";
+        debug_cout_valmod << "Request is OK" << std::endl;
     } else {
-        debug_cout_valmod << "Request is FUUUU\n";
+        debug_cout_valmod << "Request is FUUUU" << std::endl;
     }
     return validate;
 }
@@ -26,23 +26,23 @@ bool Proxy::validate_request() {
 void Proxy::set_pass_to_main_server() {
     out << "Status: 305 Use Proxy\r\n\r\n";
     out << "Proxy_pass\n";
-    debug_cout_valmod << "Status: 305 Use Proxy\n";
+    debug_cout_valmod << "Status: 305 Use Proxy" << std::endl;
 }
 
 void Proxy::set_error_to_client() {
     out << "Status: 400 Bad Request\r\n\r\n";
     out << "Bad\n";
-    debug_cout_valmod << "Status: 400 Bad Request\n";
+    debug_cout_valmod << "Status: 400 Bad Request" << std::endl;
 }
 
 bool Proxy::response() {
-    debug_cout_valmod << "-------------------------------- open request\n";
+    debug_cout_valmod << "-------------------------------- open request" << std::endl;
     if (validate_request()) {
         set_pass_to_main_server();
     } else {
         set_error_to_client();
     }
-    debug_cout_valmod << "-------------------------------- close\n\n";
+    debug_cout_valmod << "-------------------------------- close" << std::endl << std::endl;
     return true;
 }
 }
