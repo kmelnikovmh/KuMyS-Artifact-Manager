@@ -23,6 +23,7 @@ fi
 script_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 project_root="$(dirname "$(dirname "$script_root")")"
 config_file="$project_root/proxy-server/nginx.conf"
+assets_dir="$project_root/proxy-server/admin-assets/"
 
 # Переходим в папку с конфигурационным файлом nginx
 cd proxy-server || handle_error "Failed to cd to proxy-server"
@@ -52,6 +53,7 @@ sed -i.bak \
     -e "s|listen [0-9]\+;[[:space:]]*# request from client|listen ${nginx_port}; # request from client|" \
     -e "s|fastcgi_pass 127.0.0.1:[0-9]\+;[[:space:]]*# validate_module|fastcgi_pass 127.0.0.1:${validate_module_port}; # validate_module|" \
     -e "s|proxy_pass http://127.0.0.1:[0-9]\+;[[:space:]]*# buffer|proxy_pass http://127.0.0.1:${buffer_listener_nginx_port}; # buffer|" \
+    -e "s|alias .*# absolute assets path|alias ${assets_dir}; # absolute assets path|" \
     "$config_file" || handle_error "Port replacement failed"
 rm -f "${config_file}.bak"  # Удаляем резервную копию
 
