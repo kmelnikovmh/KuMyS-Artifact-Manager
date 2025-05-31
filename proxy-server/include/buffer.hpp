@@ -1,11 +1,6 @@
 #ifndef PROXY_BUFFER_
 #define PROXY_BUFFER_
 
-#include <cpprest/http_listener.h>
-#include <cpprest/http_client.h>
-// #include "LightJson.h"            // todo
-// #include "HeavyJson.h"            // todo
-#include "buffer.h"
 #include <iostream>
 #include <thread>
 #include <future>
@@ -13,6 +8,11 @@
 #include <unordered_map>
 #include <vector>
 #include <chrono>
+
+// #include "LightJson.h"            // todo
+// #include "HeavyJson.h"            // todo
+#include <cpprest/http_listener.h>
+#include <cpprest/http_client.h>
 
 namespace kymus_proxy_server {
 class PromiseAtomicMap {
@@ -53,7 +53,6 @@ private:
 
 public:
     NginxListener(const std::string& nginx_uri, const std::string& main_server_uri, PromiseAtomicMap& map);
-
     void start();
     void close();
 };
@@ -68,7 +67,6 @@ private:
 
 public:
     MainListener(const std::string& main_uri, PromiseAtomicMap& map);
-
     void start();
     void close();
 };

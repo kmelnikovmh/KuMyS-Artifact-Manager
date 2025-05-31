@@ -1,10 +1,11 @@
 #ifndef PROXY_VALIDATE_MODULE_
 #define PROXY_VALIDATE_MODULE_
 
+#include <iostream>
+
 // #include <LightJson.h>                        // todo
 #include <fastcgi++/request.hpp>
 #include <fastcgi++/manager.hpp>
-#include <iostream>
 
 namespace kymus_proxy_server {
 class Proxy : public Fastcgipp::Request<wchar_t> {
