@@ -1,6 +1,6 @@
 #include "validate_request_module.hpp"
 
-// validate_module_port (example: 5000")
+// validate_module_port (example: 63350")
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {

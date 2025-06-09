@@ -43,8 +43,8 @@ public:
 class NginxListener {
 private:
     PromiseAtomicMap& m_map;
-    web::http::experimental::listener::http_listener listener;
-    std::string main_server_uri;
+    web::http::experimental::listener::http_listener m_listener;
+    std::string m_main_server_uri;
 
     static JsonSender& get_json_sender(const std::string &uri);
 
@@ -52,7 +52,7 @@ private:
     void handle_request(const web::http::http_request& request);
 
 public:
-    NginxListener(const std::string& nginx_uri, const std::string& main_server_uri, PromiseAtomicMap& map);
+    NginxListener(const std::string& nginx_uri, const std::string& m_main_server_uri, PromiseAtomicMap& map);
     void start();
     void close();
 };
@@ -60,7 +60,7 @@ public:
 class MainListener {
 private:
     PromiseAtomicMap& m_map;
-    web::http::experimental::listener::http_listener listener;
+    web::http::experimental::listener::http_listener m_listener;
 
     // HEAD FUNCTION
     void handle_response(const web::http::http_request& request);

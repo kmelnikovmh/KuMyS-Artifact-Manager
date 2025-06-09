@@ -13,7 +13,8 @@ Proxy::Proxy() : Fastcgipp::Request<wchar_t>(5 * 1024) {};
 
 bool Proxy::validate_request() {
     bool validate = true;
-    // todo
+
+    // todo - Check ip users from file
 
     if (validate) {
         debug_cout_valmod << "Request is OK" << std::endl;

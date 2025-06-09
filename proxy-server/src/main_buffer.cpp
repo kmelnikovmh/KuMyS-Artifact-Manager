@@ -1,7 +1,7 @@
 #include "buffer.hpp"
 
 // variables: buffer_listener_nginx_port, main_server_ip, main_server_port, buffer_listener_main_port, buffer_ip_out 
-// example: 6000 127.0.0.1 6500 7000 optional: 127.0.0.1
+// example: 63360 127.0.0.1 6500 63370 optional: 127.0.0.1
 
 int main (int argc, char *argv[]) {
     if (argc < 5) {
