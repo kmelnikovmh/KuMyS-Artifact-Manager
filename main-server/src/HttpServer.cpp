@@ -50,10 +50,12 @@ void main_server::HttpServer::stop() {
 }
 
 void main_server::HttpServer::process_loop() {
-    HeavyJSON package;
     while (is_running_.load()) {
+        HeavyJSON package;
+        std::cout << "TRYREAD HTTPSERVER" << std::endl;
         output_queue_.blockingRead(package);
-        folly::coro::co_invoke([this, pkg = std::move(package)] { return response_request(std::move(pkg)); })
+        std::cout << "ACCLY READ HTTPSERVER" << std::endl;
+        folly::coro::co_invoke([this, pkg = std::move(package)] { std::cout << "wth mane" << std::endl; return response_request(std::move(pkg)); })
             .scheduleOn(executor_.get())
             .start();
     }
@@ -63,11 +65,18 @@ void main_server::HttpServer::process_loop() {
 void main_server::HttpServer::handle_get_request(const web::http::http_request& request) {
 }
 
+void print(main_server::LightJSON json) {
+    std::cout << "\tTO INSTALL\nID: " << json.id << "\n Request Type: " << json.request_type << "\n Name: " << json.name
+                  << "\n Version: " << json.version << "\n Architecture: " << json.architecture << "\n Check Sum: "
+                  << json.check_sum << "\n Repo: " << json.repo << "\n Path: " << json.path << std::endl;
+}
+
 void main_server::HttpServer::handle_post_request(const web::http::http_request& request) {
+    std::cout << "GET" << std::endl;
     request.extract_json().then([this, request](const pplx::task<json::value>& task) {
         try {
             auto      json_body = task.get();
-            LightJSON lightJson_request{.id           = json_body["id"].as_string(),
+            LightJSON lightJson_request{.id           = json_body["id"].as_number().to_uint64(),
                                         .request_type = json_body["request_type"].as_string(),
                                         .name         = json_body["name"].as_string(),
                                         .version      = json_body["version"].as_string(),
@@ -75,7 +84,7 @@ void main_server::HttpServer::handle_post_request(const web::http::http_request&
                                         .check_sum    = json_body["check_sum"].as_string(),
                                         .repo         = json_body["repo"].as_string(),
                                         .path         = json_body["path"].as_string()};
-
+            print(lightJson_request);
             if (validate_light_json(lightJson_request)) {
                 input_queue_.blockingWrite(std::move(lightJson_request));
                 request.reply(status_codes::Accepted, "Request queued");
@@ -89,10 +98,11 @@ void main_server::HttpServer::handle_post_request(const web::http::http_request&
 }
 
 folly::coro::Task<void> main_server::HttpServer::response_request(const main_server::HeavyJSON& heavyJson) {
+    std::cout << "START DOING IT HELL" << std::endl;
     http_client client(U("http://proxy:63370"));
 
     json::value request_body;
-    request_body[U("id")]           = json::value::string(heavyJson.id);
+    request_body[U("id")]           = json::value::number(heavyJson.id);
     request_body[U("request_type")] = json::value::string(utility::conversions::to_string_t(heavyJson.request_type));
     request_body[U("name")]         = json::value::string(utility::conversions::to_string_t(heavyJson.name));
     request_body[U("version")]      = json::value::string(utility::conversions::to_string_t(heavyJson.version));
@@ -112,11 +122,14 @@ folly::coro::Task<void> main_server::HttpServer::response_request(const main_ser
     }
     request_body[U("headers")] = headers_json;
 
-    client.request(methods::POST, U("/"), request_body).wait();
+    std::cout << "SEND\n" << std::endl;
+    auto resp = client.request(methods::POST, U("/"), request_body).get();
+    std::cout << resp.status_code() << std::endl;
+    co_return;
 }
 
 bool main_server::HttpServer::validate_light_json(const main_server::LightJSON& json) {
     const std::vector<std::reference_wrapper<const std::string>> fields = {
-        json.id, json.request_type, json.name, json.version, json.architecture, json.check_sum, json.repo, json.path};
+        json.request_type, json.name, json.version, json.architecture, json.check_sum, json.repo, json.path};
     return std::all_of(fields.begin(), fields.end(), [](const std::string& fields) { return !fields.empty(); });
 }
