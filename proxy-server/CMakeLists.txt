@@ -38,4 +38,8 @@ target_compile_options(buffer
 )
 target_link_libraries(buffer ${OPENSSL_LIBRARIES} cpprestsdk::cpprest)
 
-
+add_executable(admin_panel src/admin_panel.cpp src/main_admin_panel.cpp)
+target_compile_options(admin_panel
+    PRIVATE "-pthread"
+)
+target_link_libraries(admin_panel ${OPENSSL_LIBRARIES} cpprestsdk::cpprest)

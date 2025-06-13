@@ -2,12 +2,14 @@
 #define PROXY_VALIDATE_MODULE_
 
 #include <iostream>
+#include <string>
+#include <map>
 
-// #include <LightJson.h>                        // todo
 #include <fastcgi++/request.hpp>
 #include <fastcgi++/manager.hpp>
 
 namespace kymus_proxy_server {
+
 class Proxy : public Fastcgipp::Request<wchar_t> {
 private:
     bool validate_request();
@@ -20,5 +22,7 @@ private:
 public:
     Proxy();
 };
-}
+
+} // namespace kymus_proxy_server
+
 #endif

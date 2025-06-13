@@ -4,39 +4,48 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <map>
+#include <mutex>
 
-// #include "LightJson.h"            // todo
-// #include "HeavyJson.h"            // todo
 #include <cpprest/http_listener.h>
 #include <cpprest/http_client.h>
 
 namespace kymus_proxy_server {
 
+class AdminPanel {
+private:
+    std::string m_block_file_path;
+    std::mutex m_file_mutex;
+
+    std::string get_current_datetime();
+    std::string trim(const std::string &s);
+
+public:
+    AdminPanel(const std::string& block_file_path);
+    
+    // Блокировка пользователя
+    std::map<std::string, std::string> block_user(const std::string& user_ip, const std::string& reason);
+    
+    // Разблокировка пользователя
+    void unblock_user(const std::string& user_ip);
+    
+    // Получение списка заблокированных
+    std::vector<std::map<std::string, std::string>> get_blocked_users();
+};
+
 class NginxListener {
 private:
     web::http::experimental::listener::http_listener m_listener;
+    AdminPanel& m_admin_panel;
 
-    // HEAD FUNCTION
     void handle_request(const web::http::http_request& request);
 
 public:
-    NginxListener(const std::string& nginx_uri);
+    NginxListener(const std::string& nginx_uri, AdminPanel& admin_panel);
     void start();
     void close();
 };
 
-class BlockedUsers {
-private:
-    std::string m_filepath_blocked_users_list;
+} // namespace kymus_proxy_server
 
-    friend class NginxListener;
-
-    void block_user(const std::string& user_ip);
-    void unblock_user(const std::string& user_ip);
-    std::vector<std::string> get_blocked_users();
-
-public:
-    BlockedUsers(const std::string& filepath_blocked_users_list);
-}
-}
 #endif
