@@ -27,8 +27,6 @@ main_server::HttpServer::HttpServer(const std::string&           url,
     , output_queue_(output_queue)
     , executor_(std::make_shared<folly::CPUThreadPoolExecutor>(std::thread::hardware_concurrency())) {
 
-    //   listener.support(methods::GET, [this](const http_request &httpRequest) {
-    //   handle_get_request(httpRequest); });
     listener.support(methods::POST, [this](const http_request& httpRequest) { handle_post_request(httpRequest); });
 }
 

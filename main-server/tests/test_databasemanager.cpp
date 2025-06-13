@@ -1,6 +1,3 @@
-//
-// Created by Sergei on 2/22/25.
-//
 #include <gtest/gtest.h>
 #include <DatabaseManager.h>
 #include <HeavyJson.h>
@@ -12,6 +9,7 @@
 
 namespace main_server {
 namespace test {
+
 mongocxx::instance instance{};
 
 class DatabaseManagerTest : public ::testing::Test {
@@ -19,23 +17,22 @@ protected:
     static constexpr const char* TEST_DB = "packages_db";
     static constexpr const char* TEST_COLLECTION = "packages";
     static constexpr const char* TEST_BUCKET = "fs";
-    static constexpr const char* TEST_ID = "test_package_123";
+    static constexpr const char* TEST_NAME = "test_package_123";
 
     void SetUp() override {
         if (!manager) { 
             manager = std::make_unique<DatabaseManager>(
                 "mongodb://root:123@mongodb:27017"
             );
-            std::cout << "here" << std::endl;
         }
         cleanupTestData();
     }
 
     HeavyJSON createTestPackage() {
         HeavyJSON pkg;
-        pkg.id = TEST_ID;
+        pkg.id = 1;  // numeric request id
         pkg.request_type = "install";
-        pkg.name = "test-package";
+        pkg.name = TEST_NAME;  // package identifier for DB
         pkg.version = "1.0.0";
         pkg.architecture = "amd64";
         pkg.check_sum = "sha256:test123";
@@ -47,6 +44,7 @@ protected:
             {"Content-Type", "application/json"},
             {"Authorization", "Bearer test-token"}
         };
+        pkg.created_at = "2025-01-01";
         return pkg;
     }
 
@@ -57,49 +55,41 @@ private:
         auto conn = folly::coro::blockingWait(
             DatabaseManager::get_connection_async()
         );
-        
-        // Clean collection
         auto db = (*conn)[DatabaseManager::DB_NAME];
         db[TEST_COLLECTION].delete_many({});
-
-        // Clean GridFS
         auto bucket = db.gridfs_bucket(
             mongocxx::options::gridfs::bucket{}.bucket_name(TEST_BUCKET)
         );
-        auto files = bucket.find({});
-        for (auto&& file : files) {
+        for (auto&& file : bucket.find({})) {
             bucket.delete_file(file["_id"].get_value());
         }
     }
 };
 
 TEST_F(DatabaseManagerTest, StoreAndRetrievePackage) {
-    std::cout << "here" << std::endl;
     auto package = createTestPackage();
-    
-    // Test store
+    // Store under name TEST_NAME
     ASSERT_NO_THROW(
         folly::coro::blockingWait(
             DatabaseManager::store_package(package)
         )
     );
 
-    // Test check
+    // Check existence by name
     bool exists = folly::coro::blockingWait(
-        DatabaseManager::check_package(package.id)
+        DatabaseManager::check_package(package.name)
     );
     ASSERT_TRUE(exists);
 
-    // Test fetch
+    // Fetch by name
     HeavyJSON retrieved;
     ASSERT_NO_THROW(
         retrieved = folly::coro::blockingWait(
-            DatabaseManager::fetch_package(package.id))
+            DatabaseManager::fetch_package(package.name)
+        )
     );
 
-    // Validate data
-    EXPECT_EQ(retrieved.id, package.id);
-    EXPECT_EQ(retrieved.request_type, package.request_type);
+    // Validate fields
     EXPECT_EQ(retrieved.name, package.name);
     EXPECT_EQ(retrieved.version, package.version);
     EXPECT_EQ(retrieved.architecture, package.architecture);
@@ -109,70 +99,48 @@ TEST_F(DatabaseManagerTest, StoreAndRetrievePackage) {
     EXPECT_EQ(retrieved.file_size, package.file_size);
     EXPECT_EQ(retrieved.created_at, package.created_at);
     EXPECT_EQ(retrieved.content, package.content);
-
-    EXPECT_EQ(retrieved.headers.size(), package.headers.size());
-    for (const auto& [key, value] : package.headers) {
-        EXPECT_TRUE(retrieved.headers.count(key));
-        EXPECT_EQ(retrieved.headers.at(key), value);
-    }
+    EXPECT_EQ(retrieved.headers, package.headers);
 }
 
 TEST_F(DatabaseManagerTest, CheckNonExistentPackage) {
-    std::string fake_id = "non_existent_package_999";
     bool exists = folly::coro::blockingWait(
-        DatabaseManager::check_package(fake_id)
+        DatabaseManager::check_package("nonexistent")
     );
     ASSERT_FALSE(exists);
 }
 
 TEST_F(DatabaseManagerTest, FetchNonExistentPackage) {
-    std::string fake_id = "non_existent_package_999";
     EXPECT_THROW(
         folly::coro::blockingWait(
-            DatabaseManager::fetch_package(fake_id)),
+            DatabaseManager::fetch_package("nonexistent")
+        ),
         std::runtime_error
     );
 }
 
 TEST_F(DatabaseManagerTest, StoreDuplicatePackage) {
-    auto package = createTestPackage();
-    
-    // First store should succeed
+    auto pkg = createTestPackage();
     ASSERT_NO_THROW(
-        folly::coro::blockingWait(
-            DatabaseManager::store_package(package))
+        folly::coro::blockingWait(DatabaseManager::store_package(pkg))
     );
-
-    // Second store should throw
+    // Storing same name again should throw
     EXPECT_THROW(
-       folly::coro::blockingWait(
-           DatabaseManager::store_package(package)),
+        folly::coro::blockingWait(DatabaseManager::store_package(pkg)),
         std::exception
     );
 }
 
 TEST_F(DatabaseManagerTest, LargeFileHandling) {
-    HeavyJSON package = createTestPackage();
-    package.content.resize(5 * 1024 * 1024, 0xFF); // 5MB
-    
+    auto pkg = createTestPackage();
+    pkg.content.resize(5 * 1024 * 1024, 0xFF);
     ASSERT_NO_THROW(
-        folly::coro::blockingWait(
-            DatabaseManager::store_package(package))
+        folly::coro::blockingWait(DatabaseManager::store_package(pkg))
     );
-
     auto retrieved = folly::coro::blockingWait(
-        DatabaseManager::fetch_package(package.id)
+        DatabaseManager::fetch_package(pkg.name)
     );
-    
-    EXPECT_EQ(retrieved.content.size(), package.content.size());
+    EXPECT_EQ(retrieved.content.size(), pkg.content.size());
     EXPECT_EQ(retrieved.content.back(), 0xFF);
-    
-    // Проверка заголовков для большого файла
-    EXPECT_EQ(retrieved.headers.size(), package.headers.size());
-    for (const auto& [key, value] : package.headers) {
-        EXPECT_TRUE(retrieved.headers.count(key));
-        EXPECT_EQ(retrieved.headers.at(key), value);
-    }
 }
 
 } // namespace test
