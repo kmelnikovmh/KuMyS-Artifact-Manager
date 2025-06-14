@@ -1,12 +1,15 @@
 #include "validate_request_module.hpp"
 
-// validate_module_port (example: 5000")
+// validate_module_port (example: 63350")
 
 int main(int argc, char* argv[]) {
-    if (argc != 2) {
+    if (argc != 3) {
         std::cout << "Invalid input parameter\n";
         return 1;
     }
+
+    std::string blocked_list_filepath = argv[2];
+    kymus_proxy_server::BlockedList::set_blocked_list_filepath(blocked_list_filepath);
     
     Fastcgipp::Manager<kymus_proxy_server::Proxy> manager;
     manager.setupSignals();

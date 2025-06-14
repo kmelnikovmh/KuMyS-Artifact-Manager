@@ -135,8 +135,8 @@ void NginxListener::handle_request(const web::http::http_request& request) {
     std::future<std::pair<std::vector<uint8_t>, web::json::object>> req_future = m_map.create_and_return_future(original_id_client);
 
     // Send request
-    debug_cout_buffer_ << "  Start parsing uri and sending json to: " << main_server_uri << std::endl;
-    JsonSender &m_json_sender = get_json_sender(main_server_uri);
+    debug_cout_buffer_ << "  Start parsing uri and sending json to: " << m_main_server_uri << std::endl;
+    JsonSender &m_json_sender = get_json_sender(m_main_server_uri);
     web::http::status_code main_server_code = m_json_sender.json_send(request, original_id_client);
     if (main_server_code == 400) {
         request.reply(web::http::status_codes::InternalError, "!!! Invalid request from proxy-server to main-server !!!\n");
@@ -175,19 +175,19 @@ JsonSender& NginxListener::get_json_sender(const std::string &uri) {
 } 
 
 NginxListener::NginxListener(const std::string& nginx_uri, const std::string& main_server_uri, PromiseAtomicMap& map) : 
-        listener(nginx_uri), 
-        main_server_uri(main_server_uri), 
+        m_listener(nginx_uri), 
+        m_main_server_uri(main_server_uri), 
         m_map(map) {
-        listener.support(std::bind(&NginxListener::handle_request, this, std::placeholders::_1));
+        m_listener.support(std::bind(&NginxListener::handle_request, this, std::placeholders::_1));
     }
 
 void NginxListener::start() {
-    listener.open().wait();
+    m_listener.open().wait();
     std::cout << "NginxListener start" << std::endl;
 }
 
 void NginxListener::close(){
-    listener.close().wait();
+    m_listener.close().wait();
     std::cout << "NginxListener close" << std::endl;
 }
 
@@ -207,17 +207,17 @@ void MainListener::handle_response(const web::http::http_request& request) {
 }
 
 MainListener::MainListener(const std::string& main_uri, PromiseAtomicMap& map) : 
-    listener(main_uri), 
+    m_listener(main_uri), 
     m_map(map) {
-    listener.support(std::bind(&MainListener::handle_response, this, std::placeholders::_1));
+    m_listener.support(std::bind(&MainListener::handle_response, this, std::placeholders::_1));
 }
 
 void MainListener::start(){
-    listener.open().wait();
+    m_listener.open().wait();
     std::cout << "MainListener start" << std::endl;
 }
 void MainListener::close(){
-    listener.close().wait();
+    m_listener.close().wait();
     std::cout << "MainListener close" << std::endl;
 }
 }

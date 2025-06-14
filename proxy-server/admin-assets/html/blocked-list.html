@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KuMyS - Управление черным списком</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #0f172a;
+            --accent: #8b5cf6;
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --light: #f8fafc;
+            --gray: #64748b;
+            --dark-gray: #334155;
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --table-header: rgba(15, 23, 42, 0.9);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            color: var(--light);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 2rem;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.15) 0%, transparent 25%),
+                radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.15) 0%, transparent 25%);
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            z-index: 1;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            background: var(--primary);
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #93c5fd, #2563eb);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .admin-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: rgba(30, 41, 59, 0.7);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            backdrop-filter: blur(10px);
+        }
+
+        .admin-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, var(--primary), var(--accent));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #93c5fd, #60a5fa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .action-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 10px;
+            text-decoration: none;
+            transition: var(--transition);
+            cursor: pointer;
+            border: none;
+            gap: 8px;
+        }
+
+        .block-btn {
+            background: linear-gradient(135deg, #f43f5e, #e11d48);
+            color: white;
+            box-shadow: 0 4px 12px rgba(244, 63, 94, 0.35);
+        }
+
+        .block-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(244, 63, 94, 0.45);
+        }
+
+        .table-container {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            color: var(--secondary);
+        }
+
+        thead {
+            background: var(--table-header);
+            color: var(--light);
+        }
+
+        th {
+            padding: 1.2rem 1.5rem;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            transition: var(--transition);
+        }
+
+        tbody tr:hover {
+            background-color: rgba(241, 245, 249, 0.6);
+        }
+
+        td {
+            padding: 1rem 1.5rem;
+            font-size: 0.95rem;
+        }
+
+        .ip-address {
+            font-family: monospace;
+            font-weight: 600;
+            color: var(--secondary);
+        }
+
+        .block-date {
+            color: var(--dark-gray);
+            font-weight: 500;
+        }
+
+        .reason {
+            max-width: 300px;
+            color: var(--gray);
+        }
+
+        .actions-cell {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: none;
+        }
+
+        .unblock-btn {
+            background: linear-gradient(to right, var(--success), #059669);
+            color: white;
+        }
+
+        .unblock-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+        }
+
+        .back-btn {
+            background: rgba(30, 41, 59, 0.7);
+            color: var(--light);
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .back-btn:hover {
+            background: rgba(30, 41, 59, 0.9);
+            transform: translateY(-2px);
+        }
+
+        footer {
+            margin-top: auto;
+            text-align: center;
+            padding: 2rem 0;
+            color: #94a3b8;
+            font-size: 0.9rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .blocked {
+            background-color: var(--danger);
+        }
+
+        .expiring {
+            background-color: var(--warning);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--gray);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+            transform: translateX(120%);
+            transition: transform 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: linear-gradient(to right, var(--success), #059669);
+        }
+
+        .notification.error {
+            background: linear-gradient(to right, var(--danger), #b91c1c);
+        }
+
+        .notification.warning {
+            background: linear-gradient(to right, var(--warning), #d97706);
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            
+            th, td {
+                padding: 0.8rem;
+            }
+            
+            .actions-cell {
+                flex-direction: column;
+            }
+            
+            .reason {
+                max-width: 200px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 1.5rem;
+            }
+            
+            .logo-text {
+                font-size: 1.25rem;
+            }
+            
+            .page-title {
+                font-size: 1.5rem;
+            }
+            
+            table {
+                display: block;
+                overflow-x: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-box-open" style="color: white; font-size: 1.25rem;"></i>
+                </div>
+                <div class="logo-text">KuMyS</div>
+            </div>
+            <div class="admin-info">
+                <div class="admin-avatar">A</div>
+                <div>Администратор</div>
+            </div>
+        </header>
+
+        <main>
+            <div class="page-header">
+                <h1 class="page-title">Заблокированные пользователи</h1>
+                <button class="action-button block-btn" id="blockUserBtn">
+                    <i class="fas fa-user-lock"></i> Заблокировать пользователя
+                </button>
+            </div>
+            
+            <div class="table-container">
+                <table id="blacklistTable">
+                    <thead>
+                        <tr>
+                            <th>IP-адрес</th>
+                            <th>Время блокировки</th>
+                            <th>Статус</th>
+                            <th>Причина блокировки</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr>
+                            <td colspan="5" class="empty-state">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <h3>Загрузка данных...</h3>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <a href="/admin/" class="back-btn">
+                <i class="fas fa-arrow-left"></i> На главную
+            </a>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 KuMyS Repository Manager. Все права защищены.</p>
+        </footer>
+    </div>
+
+    <!-- Модальное окно для блокировки пользователя -->
+    <div class="modal" id="blockModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.9); z-index: 100; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 16px; padding: 2rem; max-width: 500px; width: 90%; position: relative;">
+            <button id="closeModal" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--gray);">&times;</button>
+            <h2 style="color: var(--secondary); margin-bottom: 1.5rem;">Блокировка пользователя</h2>
+            <form id="blockForm" style="display: grid; gap: 1.2rem;">
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; color: var(--dark-gray); font-weight: 500;">IP-адрес</label>
+                    <input type="text" id="ipInput" required style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 1px solid #cbd5e1; font-family: monospace;">
+                    <div id="ipError" style="color: var(--danger); font-size: 0.85rem; margin-top: 0.25rem; display: none;">Неверный формат IP-адреса</div>
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; color: var(--dark-gray); font-weight: 500;">Причина блокировки</label>
+                    <textarea id="reasonInput" required style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 1px solid #cbd5e1; min-height: 120px;"></textarea>
+                    <div id="reasonError" style="color: var(--danger); font-size: 0.85rem; margin-top: 0.25rem; display: none;">Пожалуйста, укажите причину</div>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
+                    <button type="button" id="cancelBlock" style="padding: 0.75rem 1.5rem; border-radius: 10px; background: #e2e8f0; border: none; font-weight: 600; cursor: pointer;">Отмена</button>
+                    <button type="submit" id="submitBlock" style="padding: 0.75rem 1.5rem; border-radius: 10px; background: var(--danger); color: white; border: none; font-weight: 600; cursor: pointer;">Заблокировать</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="notification" id="notification">
+        <i class="fas fa-check-circle"></i>
+        <span id="notificationText">Операция выполнена успешно!</span>
+    </div>
+
+    <script src="/admin/js/blocked-list.js"></script>
+</body>
+</html>
