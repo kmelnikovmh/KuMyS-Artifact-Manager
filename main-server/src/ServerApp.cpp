@@ -15,7 +15,7 @@
 
 constexpr std::size_t QUEUE_CAPACITY   = 1000;
 constexpr std::size_t DB_PORT          = 27017;
-constexpr std::size_t HTTP_SERVER_PORT = 8081;
+constexpr std::size_t HTTP_SERVER_PORT = 38081;
 
 int runServerApp(){
     try {
@@ -32,7 +32,7 @@ int runServerApp(){
         folly::MPMCQueue<main_server::HeavyJSON> output_queue(QUEUE_CAPACITY);
 
         // start http-server
-        main_server::HttpServer server("http://0.0.0.0:8081", input_queue, output_queue);
+        main_server::HttpServer server("http://0.0.0.0:"+std::to_string(HTTP_SERVER_PORT), input_queue, output_queue);
         server.start();
         std::cout << "Server start" << std::endl;
 

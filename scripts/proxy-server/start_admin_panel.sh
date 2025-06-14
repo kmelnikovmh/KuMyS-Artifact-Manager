@@ -19,5 +19,5 @@ fi
 
 # Запуск
 if ! ./admin-panel "${admin_panel_module_port}" "${blocked_ips_filepath}"; then
-    handle_error "Failed to start validation module"
+    handle_error "Failed to start admin-panel"
 fi

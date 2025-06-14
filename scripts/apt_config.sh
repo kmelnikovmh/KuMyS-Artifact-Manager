@@ -25,7 +25,7 @@ fi
 
 for source_file in $found_files; do
     backup_file="${source_file}.bak-$(date +%s)"
-    cp -f "$source_file" "$backup_file"
+    # cp -f "$source_file" "$backup_file"
     
     awk -v ip="$nginx_ip" -v port="$nginx_port" -v pattern="$target_pattern" '
         /^[[:space:]]*#/ { print; next }

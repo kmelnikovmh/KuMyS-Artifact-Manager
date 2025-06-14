@@ -146,7 +146,7 @@ void NginxListener::handle_request(const web::http::http_request& request) {
             request.reply(web::http::status_codes::OK, json_response);
         }
         else if (method == web::http::methods::POST) {
-            request.extract_json().then([=](web::json::value body) {
+            request.extract_json().then([&](web::json::value body) {
                 try {
                     std::string ip = body["ip"].as_string();
                     std::string reason = body["reason"].as_string();

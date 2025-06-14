@@ -35,11 +35,13 @@ add_library(kumys_lib STATIC
         src/RequestHandler.cpp
         src/DatabaseManager.cpp
         src/PackageDownloader.cpp
+        src/ServerApp.cpp
         include/DatabaseManager.h
         include/HttpServer.h
         include/RequestHandler.h
         include/DatabaseManager.h
         include/PackageDownloader.h
+        include/ServerApp.h
 )
 
 

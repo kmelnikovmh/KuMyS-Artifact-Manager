@@ -14,7 +14,7 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: 123
     networks:
       - app-network
-	  
+
   app:
     build: main-server/
     container_name: app
