@@ -75,11 +75,15 @@
     ```bash
     ./scripts/proxy-server/start_nginx.sh stop
     ```
-3) В отдельном терминале запустить модуль валидации запросов:
+3) Запустить панель администрирования:
+    ```bash
+    ./scripts/proxy-server/start_admin_panel.sh
+    ```
+4) В отдельном терминале запустить модуль валидации запросов:
     ```bash
     ./scripts/proxy-server/start_validate_module.sh
     ```
-4) В отдельном терминале запустить буффер между nginx и main-server'ом, указав в аргументах ip и port main-server'а:
+5) В отдельном терминале запустить буффер между nginx и main-server'ом, указав в аргументах ip и port main-server'а:
     ```bash
     ./scripts/proxy-server/start_buffer.sh <ip> <port>
     ```

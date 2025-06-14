@@ -28,18 +28,21 @@ include_directories(${OPENSSL_INCLUDE_DIR})
 # set(FOLLY_LIBRARY "/tmp/fbcode_builder_getdeps-ZfollyZbuildZfbcode_builder-root/build/folly")
 # include_directories(${FOLLY_INCLUDE_DIR})
 
+# Validate-module
+add_executable(validate-module src/validate_request_module.cpp src/main_validate_request_module.cpp)
+target_link_libraries(validate-module ${FASTCGIPP_LIBRARY})
 
-add_executable(validate_module src/validate_request_module.cpp src/main_validate_request_module.cpp)
-target_link_libraries(validate_module ${FASTCGIPP_LIBRARY})
+# Admin-panel
+add_executable(admin-panel src/admin_panel.cpp src/main_admin_panel.cpp)
+target_compile_options(admin-panel
+    PRIVATE "-pthread"
+)
+target_link_libraries(admin-panel ${OPENSSL_LIBRARIES} cpprestsdk::cpprest)
 
+# Buffer
 add_executable(buffer src/buffer.cpp src/main_buffer.cpp)
 target_compile_options(buffer
     PRIVATE  "-pthread"  # Thread safety
 )
 target_link_libraries(buffer ${OPENSSL_LIBRARIES} cpprestsdk::cpprest)
 
-add_executable(admin_panel src/admin_panel.cpp src/main_admin_panel.cpp)
-target_compile_options(admin_panel
-    PRIVATE "-pthread"
-)
-target_link_libraries(admin_panel ${OPENSSL_LIBRARIES} cpprestsdk::cpprest)

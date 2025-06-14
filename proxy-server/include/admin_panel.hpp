@@ -23,13 +23,10 @@ private:
 public:
     AdminPanel(const std::string& block_file_path);
     
-    // Блокировка пользователя
     std::map<std::string, std::string> block_user(const std::string& user_ip, const std::string& reason);
     
-    // Разблокировка пользователя
     void unblock_user(const std::string& user_ip);
     
-    // Получение списка заблокированных
     std::vector<std::map<std::string, std::string>> get_blocked_users();
 };
 

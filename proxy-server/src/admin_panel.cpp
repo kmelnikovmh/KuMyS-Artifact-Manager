@@ -1,13 +1,22 @@
 #include "admin_panel.hpp"
+
 #include <fstream>
 #include <sstream>
 #include <iomanip>
 #include <ctime>
 #include <cctype>
 
+// Добавить дебаг вывод
+#define DEBUG_MODE_VALIDATE_MODULE_
+#ifdef DEBUG_MODE_VALIDATE_MODULE_
+    #define debug_cout_valmod std::cout
+#else
+    #define debug_cout_valmod if (false) std::cout
+#endif
+
 namespace kymus_proxy_server {
 
-// Вспомогательная функция для тримирования строк
+// AdminPanel
 std::string AdminPanel::trim(const std::string &s) {
     auto start = s.begin();
     while (start != s.end() && std::isspace(*start)) {
@@ -20,7 +29,6 @@ std::string AdminPanel::trim(const std::string &s) {
     return std::string(start, end + 1);
 }
 
-// Вспомогательная функция для получения текущего времени
 std::string AdminPanel::get_current_datetime() {
     auto now = std::chrono::system_clock::now();
     auto in_time_t = std::chrono::system_clock::to_time_t(now);
@@ -32,11 +40,9 @@ std::string AdminPanel::get_current_datetime() {
     return ss.str();
 }
 
-// Реализация класса AdminPanel
 AdminPanel::AdminPanel(const std::string& block_file_path) 
     : m_block_file_path(block_file_path) {
     
-    // Создаем файл, если он не существует
     std::ifstream test_file(block_file_path);
     if (!test_file.good()) {
         std::ofstream create_file(block_file_path);
@@ -48,18 +54,15 @@ AdminPanel::AdminPanel(const std::string& block_file_path)
 
 std::map<std::string, std::string> AdminPanel::block_user(
     const std::string& user_ip, 
-    const std::string& reason) 
-{
+    const std::string& reason) {
     std::lock_guard<std::mutex> lock(m_file_mutex);
     
-    // Создаем запись для ответа
     std::map<std::string, std::string> new_entry;
     new_entry["ip"] = user_ip;
     new_entry["block_date"] = get_current_datetime();
     new_entry["reason"] = reason;
     new_entry["status"] = "Активна";
     
-    // Записываем в файл
     std::ofstream out_file(m_block_file_path, std::ios::app);
     if (out_file) {
         out_file << new_entry["ip"] << " " 
@@ -73,13 +76,11 @@ std::map<std::string, std::string> AdminPanel::block_user(
 void AdminPanel::unblock_user(const std::string& user_ip) {
     std::lock_guard<std::mutex> lock(m_file_mutex);
     
-    // Читаем все строки
     std::ifstream in_file(m_block_file_path);
     std::vector<std::string> lines;
     std::string line;
     
     while (std::getline(in_file, line)) {
-        // Пропускаем строки с этим IP
         if (line.find(user_ip + " ") == 0) {
             continue;
         }
@@ -89,7 +90,6 @@ void AdminPanel::unblock_user(const std::string& user_ip) {
     }
     in_file.close();
     
-    // Перезаписываем файл
     std::ofstream out_file(m_block_file_path, std::ios::trunc);
     for (const auto& l : lines) {
         out_file << l << "\n";
@@ -105,7 +105,6 @@ std::vector<std::map<std::string, std::string>> AdminPanel::get_blocked_users() 
     while (std::getline(in_file, line)) {
         if (line.empty()) continue;
         
-        // Парсим строку: IP, дата/время, причина (остаток строки)
         size_t first_space = line.find(' ');
         if (first_space == std::string::npos) continue;
         
@@ -124,15 +123,13 @@ std::vector<std::map<std::string, std::string>> AdminPanel::get_blocked_users() 
     return result;
 }
 
-// Реализация класса NginxListener
+// NginxListener
 void NginxListener::handle_request(const web::http::http_request& request) {
     auto path = request.relative_uri().path();
     auto method = request.method();
     
-    // Обработка запросов черного списка
     if (path == "/blacklist") {
         if (method == web::http::methods::GET) {
-            // GET запрос - получить список заблокированных
             auto blocked_users = m_admin_panel.get_blocked_users();
             web::json::value json_response = web::json::value::array();
             
@@ -149,16 +146,13 @@ void NginxListener::handle_request(const web::http::http_request& request) {
             request.reply(web::http::status_codes::OK, json_response);
         }
         else if (method == web::http::methods::POST) {
-            // POST запрос - добавить блокировку
             request.extract_json().then([=](web::json::value body) {
                 try {
                     std::string ip = body["ip"].as_string();
                     std::string reason = body["reason"].as_string();
                     
-                    // Блокируем пользователя и получаем новую запись
                     auto new_entry = m_admin_panel.block_user(ip, reason);
                     
-                    // Возвращаем JSON новой записи
                     web::json::value json_response;
                     json_response["ip"] = web::json::value::string(new_entry["ip"]);
                     json_response["block_date"] = web::json::value::string(new_entry["block_date"]);
@@ -175,26 +169,20 @@ void NginxListener::handle_request(const web::http::http_request& request) {
         else {
             request.reply(web::http::status_codes::MethodNotAllowed);
         }
-    }
-    // Обработка запросов на разблокировку
-    else if (path.find("/blacklist/") == 0) {
+    } else if (path.find("/blacklist/") == 0) {
         if (method == web::http::methods::DEL) {
-            // Извлекаем IP из URL
             std::string ip = path.substr(strlen("/blacklist/"));
             ip = web::uri::decode(ip);
             
             m_admin_panel.unblock_user(ip);
             
-            // Возвращаем пустой ответ с кодом 204 (No Content)
             request.reply(web::http::status_codes::NoContent);
         }
         else {
             request.reply(web::http::status_codes::MethodNotAllowed);
         }
     }
-    // Статический контент
     else if (path == "/admin" || path == "/admin/") {
-        // Возвращаем главную страницу админ-панели
         std::ifstream file("admin.html");
         if (file) {
             std::string content((std::istreambuf_iterator<char>(file)), 
@@ -205,7 +193,6 @@ void NginxListener::handle_request(const web::http::http_request& request) {
         }
     }
     else if (path == "/admin/blacklist" || path == "/admin/blacklist/") {
-        // Возвращаем страницу управления черным списком
         std::ifstream file("blacklist.html");
         if (file) {
             std::string content((std::istreambuf_iterator<char>(file)), 
