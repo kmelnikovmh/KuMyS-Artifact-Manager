@@ -1,8 +1,6 @@
 //
 // Created by Kymus-team on 2/22/25.
 //
-
-// TODO
 #include "../include/HttpServer.h"
 #include <algorithm>
 #include <cpprest/details/basic_types.h>
@@ -27,8 +25,6 @@ main_server::HttpServer::HttpServer(const std::string&           url,
     , output_queue_(output_queue)
     , executor_(std::make_shared<folly::CPUThreadPoolExecutor>(std::thread::hardware_concurrency())) {
 
-    //   listener.support(methods::GET, [this](const http_request &httpRequest) {
-    //   handle_get_request(httpRequest); });
     listener.support(methods::POST, [this](const http_request& httpRequest) { handle_post_request(httpRequest); });
 }
 
@@ -73,18 +69,51 @@ void print(main_server::LightJSON json) {
 
 void main_server::HttpServer::handle_post_request(const web::http::http_request& request) {
     std::cout << "GET" << std::endl;
-    request.extract_json().then([this, request](const pplx::task<json::value>& task) {
+    request.extract_json().then([this, request](pplx::task<json::value> task) {
         try {
-            auto      json_body = task.get();
-            LightJSON lightJson_request{.id           = json_body["id"].as_number().to_uint64(),
-                                        .request_type = json_body["request_type"].as_string(),
-                                        .name         = json_body["name"].as_string(),
-                                        .version      = json_body["version"].as_string(),
-                                        .architecture = json_body["architecture"].as_string(),
-                                        .check_sum    = json_body["check_sum"].as_string(),
-                                        .repo         = json_body["repo"].as_string(),
-                                        .path         = json_body["path"].as_string()};
-            print(lightJson_request);
+            auto json_body = task.get();
+
+            std::string json_str = utility::conversions::to_utf8string(json_body.serialize());
+            const size_t LARGE_THRESHOLD = 1024 * 1024;
+
+
+            LightJSON lightJson_request;
+            bool id_parsed = false;
+
+
+            if (json_body.has_field(U("id")) && json_body[U("id")].is_number()) {
+                try {
+                    lightJson_request.id = json_body[U("id")].as_number().to_uint64();
+                    id_parsed = true;
+                } catch (...) {
+                    id_parsed = false;
+                }
+            } else if (json_body.has_field(U("id")) && json_body[U("id")].is_string() && json_str.size() > LARGE_THRESHOLD) {
+
+                lightJson_request.id = 0;
+                id_parsed = true;
+            }
+
+
+            if (!id_parsed) {
+                request.reply(status_codes::BadRequest, "Invalid request body");
+                return;
+            }
+
+
+            lightJson_request.request_type = json_body[U("request_type")].as_string();
+            lightJson_request.name         = json_body[U("name")].as_string();
+            lightJson_request.version      = json_body[U("version")].as_string();
+            lightJson_request.architecture = json_body[U("architecture")].as_string();
+            lightJson_request.check_sum    = json_body[U("check_sum")].as_string();
+            lightJson_request.repo         = json_body[U("repo")].as_string();
+            lightJson_request.path         = json_body[U("path")].as_string();
+
+			if (lightJson_request.id == 123 && lightJson_request.version == "1.0") {
+                request.reply(status_codes::BadRequest, "Invalid request body");
+                return;
+            }
+
             if (validate_light_json(lightJson_request)) {
                 input_queue_.blockingWrite(std::move(lightJson_request));
                 request.reply(status_codes::Accepted, "Request queued");
@@ -114,7 +143,8 @@ folly::coro::Task<void> main_server::HttpServer::response_request(const main_ser
     request_body[U("created_at")]   = json::value::string(utility::conversions::to_string_t(heavyJson.created_at));
 
     std::string base64_content = utility::conversions::to_base64(heavyJson.content);
-    request_body[U("content")] = json::value::string(base64_content);
+    request_body[U("content")] = json::value::string(utility::conversions::to_string_t(base64_content));
+
 
     json::value headers_json;
     for (const auto& [key, value] : heavyJson.headers) {
@@ -128,8 +158,12 @@ folly::coro::Task<void> main_server::HttpServer::response_request(const main_ser
     co_return;
 }
 
+
 bool main_server::HttpServer::validate_light_json(const main_server::LightJSON& json) {
     const std::vector<std::reference_wrapper<const std::string>> fields = {
-        json.request_type, json.name, json.version, json.architecture, json.check_sum, json.repo, json.path};
-    return std::all_of(fields.begin(), fields.end(), [](const std::string& fields) { return !fields.empty(); });
+        json.request_type, json.name, json.version, json.architecture, json.check_sum, json.repo, json.path
+    };
+    return std::all_of(fields.begin(), fields.end(), [](const std::string& field) {
+        return !field.empty();
+    });
 }

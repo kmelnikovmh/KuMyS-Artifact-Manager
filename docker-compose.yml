@@ -14,17 +14,7 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: 123
     networks:
       - app-network
-
-  # TO_DO WEB UI
-#  mongo-express:
-#    image: mongo-express
-#    ports:
-#      - "8881:8081"
-#    environment:
-#      ME_CONFIG_MONGODB_ADMINUSERNAME: root
-#      ME_CONFIG_MONGODB_ADMINPASSWORD: 123
-#      ME_CONFIG_MONGODB_SERVER: mongodb
-
+	  
   app:
     build: main-server/
     container_name: app

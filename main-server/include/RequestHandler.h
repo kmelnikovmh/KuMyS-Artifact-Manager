@@ -4,7 +4,6 @@
 #ifndef KUMYS_ARTIFACT_MANAGER_REQUESTHANDLER_H
 #define KUMYS_ARTIFACT_MANAGER_REQUESTHANDLER_H
 
-
 #include "HeavyJson.h"
 #include "LightJson.h"
 #include <folly/MPMCQueue.h>

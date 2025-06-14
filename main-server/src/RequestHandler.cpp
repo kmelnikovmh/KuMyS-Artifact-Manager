@@ -28,32 +28,42 @@ void main_server::RequestHandler::start() {
 
 void main_server::RequestHandler::stop() {
     stopped_.store(true);
-    executor_->join();
-    if (worker_.joinable())
+    LightJSON dummy;
+    input_queue_.blockingWrite(std::move(dummy));
+    if (worker_.joinable()) {
         worker_.join();
+    }
+
+    executor_->join();
 }
 
+
 void main_server::RequestHandler::processLoop() {
-    while (!stopped_.load()) {
+    while (true) {
         LightJSON package;
         input_queue_.blockingRead(package);
+        if (stopped_.load() && package.name.empty()) {
+            break;
+        }
         folly::coro::co_invoke([this, pkg = std::move(package)] { return processPackage(std::move(pkg)); })
             .scheduleOn(executor_.get())
             .start();
     }
 }
 
+
 folly::coro::Task<void> main_server::RequestHandler::processPackage(main_server::LightJSON package) {
     try {
-        bool exist = co_await main_server::DatabaseManager::check_package(package.name);
+        bool exist = co_await DatabaseManager::check_package(package.name);
         if (exist) {
-            HeavyJSON heavyJSON = co_await main_server::DatabaseManager::fetch_package(package.name);
+            HeavyJSON heavyJSON = co_await DatabaseManager::fetch_package(package.name);
             heavyJSON.id = package.id;
             output_queue_.blockingWrite(std::move(heavyJSON));
         } else {
             download_queue_.blockingWrite(std::move(package));
         }
     } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+        std::cerr << "DB access error: " << e.what() << std::endl;
+        download_queue_.blockingWrite(std::move(package));
     }
 }
