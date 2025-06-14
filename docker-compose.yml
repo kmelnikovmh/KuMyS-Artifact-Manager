@@ -62,6 +62,18 @@ services:
     tty: true
     restart: unless-stopped
 
+  # user:
+  #   build: proxy-server/
+  #   container_name: user
+  #   image: kumys-proxy
+  #   ports:
+  #     - "59000:59000"
+  #   networks:
+  #     - app-network
+  #   stdin_open: true
+  #   tty: true
+  #   restart: unless-stopped
+
 networks:
   app-network:
     driver: bridge
