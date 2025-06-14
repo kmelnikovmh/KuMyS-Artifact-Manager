@@ -7,12 +7,13 @@
 
 #include <string>
 #include <vector>
+#include <cstdint>
 #include <unordered_map>
 #include <bsoncxx/types/bson_value/view.hpp>
 
 namespace main_server {
     struct HeavyJSON {
-        std::string id;
+        uint64_t id;
         std::string request_type;
         std::string name;
         std::string version;

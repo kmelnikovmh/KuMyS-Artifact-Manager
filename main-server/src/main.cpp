@@ -2,9 +2,9 @@
 // Created by Kymus-team on 2/22/25.
 //
 #include "../include/DatabaseManager.h"
-#include "../include/HeavyJson.h"
+#include "HeavyJson.h"
 #include "../include/HttpServer.h"
-#include "../include/LightJson.h"
+#include "LightJson.h"
 #include "../include/PackageDownloader.h"
 #include "../include/RequestHandler.h"
 #include <folly/MPMCQueue.h>
@@ -24,6 +24,7 @@ int main() {
 
         // DB-init
         main_server::DatabaseManager databaseManager("mongodb://root:123@mongodb:27017");
+        databaseManager.clean();
         std::cout << "Database is init!" << std::endl;
 
         // Queue-s init
@@ -42,8 +43,9 @@ int main() {
         std::cout << "Handler start" << std::endl;
 
         // start downloader
-        // main_server::PackageDownloader downloader();
-        // downloader.start();
+        main_server::PackageDownloader downloader(download_queue, output_queue);
+        downloader.start();
+        std::cout << "Downloader start" << std::endl;
 
         std::cout << "Server running. Press Enter to exit..." << std::endl;
         std::cin.get();
